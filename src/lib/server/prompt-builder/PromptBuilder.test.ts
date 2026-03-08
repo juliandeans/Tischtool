@@ -31,25 +31,55 @@ describe('promptBuilder', () => {
     expect(result.promptText).toContain('Entscheidende zusätzliche Hinweise:');
     expect(result.promptText).toContain('- gelbe Wand');
     expect(result.promptText).toContain('- Hängepflanzen');
-    expect(result.promptText).not.toContain('- ruhiger');
+    expect(result.promptText).toContain('- ruhiger');
     expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
       result.promptText.indexOf('Ausgabeziel:')
     );
     expect(result.promptDebug.instructionDebug).toEqual({
       rawInput: 'gelbe Wand, Hängepflanzen, ruhiger',
-      normalizedLines: ['gelbe Wand', 'Hängepflanzen']
+      normalizedLines: ['gelbe Wand', 'Hängepflanzen', 'ruhiger']
     });
   });
 
-  it('splits hints by commas and line breaks without rewriting them', () => {
+  it('parses line breaks as individual hints', () => {
     const result = promptBuilder.build({
       projectId: 'project-2',
+      sourceImageId: 'image-2',
+      mode: 'environment_edit',
+      variantsRequested: 1,
+      stylePreset: 'original',
+      lightPreset: 'original',
+      instructions: 'Fischteich\nrote Wand\nPalme im Garten',
+      targetMaterial: null,
+      surfaceDescription: '',
+      preserveObject: true,
+      preservePerspective: true,
+      placement: null
+    });
+
+    expect(result.promptDebug.instructionDebug.rawInput).toBe(
+      'Fischteich\nrote Wand\nPalme im Garten'
+    );
+    expect(result.promptDebug.instructionDebug.normalizedLines).toEqual([
+      'Fischteich',
+      'rote Wand',
+      'Palme im Garten'
+    ]);
+    expect(result.promptText).toContain('Entscheidende zusätzliche Hinweise:');
+    expect(result.promptText).toContain('- Fischteich');
+    expect(result.promptText).toContain('- rote Wand');
+    expect(result.promptText).toContain('- Palme im Garten');
+  });
+
+  it('parses mixed separators identically', () => {
+    const result = promptBuilder.build({
+      projectId: 'project-3',
       sourceImageId: 'furniture-1',
       mode: 'room_insert',
       variantsRequested: 1,
       stylePreset: 'editorial',
       lightPreset: 'tageslicht',
-      instructions: ' rotes Haus,\n Fischteich ; grünes Dach ',
+      instructions: 'rotes Haus,\nFischteich ;\nPalme im Garten',
       targetMaterial: null,
       surfaceDescription: '',
       preserveObject: true,
@@ -64,16 +94,38 @@ describe('promptBuilder', () => {
     });
 
     expect(result.promptDebug.instructionDebug.rawInput).toBe(
-      'rotes Haus, Fischteich ; grünes Dach'
+      'rotes Haus,\nFischteich ;\nPalme im Garten'
     );
     expect(result.promptDebug.instructionDebug.normalizedLines).toEqual([
       'rotes Haus',
       'Fischteich',
-      'grünes Dach'
+      'Palme im Garten'
     ]);
     expect(result.promptText).toContain('Raumfoto-ID: room-1.');
     expect(result.promptText).toContain('- rotes Haus');
     expect(result.promptText).toContain('- Fischteich');
-    expect(result.promptText).toContain('- grünes Dach');
+    expect(result.promptText).toContain('- Palme im Garten');
+  });
+
+  it('keeps a single hint as a single normalized line', () => {
+    const result = promptBuilder.build({
+      projectId: 'project-4',
+      sourceImageId: 'image-4',
+      mode: 'material_edit',
+      variantsRequested: 1,
+      stylePreset: 'original',
+      lightPreset: 'original',
+      instructions: 'rotes Haus',
+      targetMaterial: 'oak-light',
+      surfaceDescription: '',
+      preserveObject: true,
+      preservePerspective: true,
+      placement: null
+    });
+
+    expect(result.promptDebug.instructionDebug.rawInput).toBe('rotes Haus');
+    expect(result.promptDebug.instructionDebug.normalizedLines).toEqual(['rotes Haus']);
+    expect(result.promptText).toContain('Entscheidende zusätzliche Hinweise:');
+    expect(result.promptText).toContain('- rotes Haus');
   });
 });

@@ -135,12 +135,11 @@ export const buildRoomInsertPrompt = (
   const protectionRules = getRoomInsertProtectionRules(input);
   const preservationRules = uniqueLines(
     protectionRules
-      .filter((rule) =>
-        ['preserveObject', 'preservePerspective', 'noExtraFurniture'].includes(rule.key)
-      )
+      .filter((rule) => ['preserveObject', 'preservePerspective'].includes(rule.key))
       .map((rule) => rule.appliedFragment)
   );
   const changeAreaRules = uniqueLines([
+    protectionRules.find((rule) => rule.key === 'noExtraFurniture')?.appliedFragment,
     protectionRules.find((rule) => rule.key === 'adaptLighting')?.appliedFragment,
     'Setze das Möbel plausibel in die markierte Zielregion ein.'
   ]);
