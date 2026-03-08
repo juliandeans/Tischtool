@@ -13,20 +13,24 @@ Sie ist ein **schnelles Präsentationswerkzeug**.
 ## Kern-Use-Cases
 
 ### 1. Umgebung eines Möbelbilds ändern
+
 Beispiel:
 Ein Schreibtisch soll vor einer gelben Wand mit Pflanzen gezeigt werden.
 
 ### 2. Materialvariante darstellen
+
 Beispiel:
 Ein Tisch soll statt heller Eiche als dunkler Nussbaum erscheinen.
 
 ### 3. Möbel in Kundenfoto einsetzen
+
 Beispiel:
 Ein Kunde schickt ein Raumfoto. Das Möbel wird grob plausibel dort eingesetzt.
 
 ## Produktgrenzen
 
 Die App soll nicht:
+
 - exakte Geometrie garantieren
 - Möbel neu entwerfen
 - freie Fantasie-Interiors generieren
@@ -42,6 +46,7 @@ Die App soll nicht:
 ## Zielgruppe
 
 Primär:
+
 - Tischlerinnen
 - kleine Möbelstudios
 - Innenausbau-nahe Kreative
@@ -50,6 +55,7 @@ Primär:
 ## Scope für MVP
 
 Enthalten:
+
 - Web-App
 - Projekte
 - Bild-Upload
@@ -61,6 +67,7 @@ Enthalten:
 - Kosten-Tab
 
 Nicht enthalten:
+
 - Team-Workflow
 - Kommentare
 - Kundenfreigabelinks

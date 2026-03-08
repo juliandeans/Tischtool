@@ -14,21 +14,27 @@
 ## Screens
 
 ### Projekte
+
 Projektliste mit Cover, letzter Bearbeitung und Bildanzahl.
 
 ### Projekt-Detail
+
 Originalbild, letzte Varianten, Schnellaktionen.
 
 ### Library
+
 Grid aller Bilder.
 
 ### Editor
+
 Einzelbild mit rechter Sidebar.
 
 ### Raumfoto einsetzen
+
 Eigenständiger Modus mit Platzierungs-Canvas.
 
 ### Kosten
+
 Zusammenfassung, Tabelle, Diagramme.
 
 ## Screen: Library
@@ -36,6 +42,7 @@ Zusammenfassung, Tabelle, Diagramme.
 Grid aus Bildkarten.
 
 Pro Karte:
+
 - Bild
 - Metadaten
 - Hover-Icons:
@@ -45,9 +52,11 @@ Pro Karte:
 ## Screen: Editor
 
 Linke/zentral:
+
 - großes Vorschaubild
 
 Rechte Sidebar:
+
 - Modus
 - Stil
 - Licht
@@ -58,10 +67,12 @@ Rechte Sidebar:
 ## Screen: Raumfoto einsetzen
 
 Zentrale Fläche:
+
 - Raumfoto
 - Platzierungs-Overlay / Box
 
 Rechte Sidebar:
+
 - Möbelbild auswählen
 - Stil
 - Licht
@@ -71,12 +82,14 @@ Rechte Sidebar:
 ## Screen: Kosten
 
 Oben:
+
 - Kosten heute
 - Kosten im Monat
 - Durchschnitt pro Bild
 - teuerstes Projekt
 
 Darunter:
+
 - Tabelle
 - Kosten pro Projekt
 - Kosten pro Tag
@@ -84,6 +97,7 @@ Darunter:
 ## Leere Zustände
 
 Die App braucht gute Empty States:
+
 - kein Projekt
 - keine Bilder
 - keine Kosten

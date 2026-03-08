@@ -34,11 +34,13 @@ So kann Codex Upload/Download/Thumbnails ohne Cloud-Zirkus bauen.
 Es ist sinnvoll, 2–3 Default-Presets zu seeden:
 
 ### Stil
+
 - Original
 - editorial
 - wohnlich
 
 ### Licht
+
 - Original
 - Tageslicht
 - Abendlicht

@@ -7,6 +7,7 @@ Codex soll die App in einer festen Reihenfolge bauen, ohne mitten im Projekt die
 ## Grundregel
 
 Codex soll pro Phase:
+
 1. lesen
 2. planen
 3. die betroffenen Dateien ändern
@@ -16,6 +17,7 @@ Codex soll pro Phase:
 ## Phase A – Projektgerüst
 
 Codex soll:
+
 - SvelteKit-Projekt initialisieren
 - TypeScript aktivieren
 - Basisstruktur anlegen
@@ -26,6 +28,7 @@ Codex soll:
 ## Phase B – Datenmodell und Backend-Skelett
 
 Codex soll:
+
 - DB-Schema anlegen
 - Services als Module anlegen
 - API-Endpunkte als Skelett anlegen
@@ -34,6 +37,7 @@ Codex soll:
 ## Phase C – Upload und Library
 
 Codex soll:
+
 - Bild-Upload implementieren
 - Bilder speichern
 - Thumbnails erzeugen
@@ -44,6 +48,7 @@ Codex soll:
 ## Phase D – Editor environment_edit
 
 Codex soll:
+
 - Editor-Screen bauen
 - Sidebar-Felder implementieren
 - Prompt Builder für environment_edit implementieren
@@ -53,6 +58,7 @@ Codex soll:
 ## Phase E – material_edit
 
 Codex soll:
+
 - Materialmodus ergänzen
 - Prompt-Builder erweitern
 - UI-Modusumschaltung einbauen
@@ -60,6 +66,7 @@ Codex soll:
 ## Phase F – room_insert
 
 Codex soll:
+
 - Raumfoto-Screen bauen
 - RoomPlacementCanvas implementieren
 - Klick + optionale Box erfassen
@@ -69,6 +76,7 @@ Codex soll:
 ## Phase G – Kosten
 
 Codex soll:
+
 - Costs-Tabelle füllen
 - Summary-Endpunkte bauen
 - Kosten-Screen bauen

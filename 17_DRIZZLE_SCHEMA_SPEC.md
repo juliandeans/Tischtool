@@ -15,12 +15,14 @@ Das Schema soll von Anfang an konkret sein, damit Codex nicht erst ein halbes Sc
 ## Tabellen – Drizzle-Konzept
 
 ### users
+
 - id: uuid pk
 - email: text unique not null
 - name: text nullable
 - createdAt: timestamp not null default now
 
 ### projects
+
 - id: uuid pk
 - userId: uuid fk users.id not null
 - name: text not null
@@ -30,6 +32,7 @@ Das Schema soll von Anfang an konkret sein, damit Codex nicht erst ein halbes Sc
 - updatedAt: timestamp not null default now
 
 ### images
+
 - id: uuid pk
 - projectId: uuid fk projects.id not null
 - userId: uuid fk users.id not null
@@ -50,6 +53,7 @@ Das Schema soll von Anfang an konkret sein, damit Codex nicht erst ein halbes Sc
 - createdAt: timestamp not null default now
 
 ### generations
+
 - id: uuid pk
 - projectId: uuid fk projects.id not null
 - userId: uuid fk users.id not null
@@ -69,6 +73,7 @@ Das Schema soll von Anfang an konkret sein, damit Codex nicht erst ein halbes Sc
 - createdAt: timestamp not null default now
 
 ### presets
+
 - id: uuid pk
 - userId: uuid nullable
 - category: text not null
@@ -78,6 +83,7 @@ Das Schema soll von Anfang an konkret sein, damit Codex nicht erst ein halbes Sc
 - createdAt: timestamp not null default now
 
 ### costLogs
+
 - id: uuid pk
 - generationId: uuid fk generations.id not null
 - provider: text not null
@@ -92,6 +98,7 @@ Das Schema soll von Anfang an konkret sein, damit Codex nicht erst ein halbes Sc
 ## Enums als Text im MVP
 
 Für schnellen Start im MVP:
+
 - `mode`
 - `status`
 - `type`
@@ -102,22 +109,26 @@ dürfen als `text` modelliert werden, aber nur über TypeScript-Literal-Types be
 ## Zulässige Werte
 
 ### image.type
+
 - `original`
 - `generated`
 - `upload`
 
 ### generation.mode
+
 - `environment_edit`
 - `material_edit`
 - `room_insert`
 
 ### generation.status
+
 - `pending`
 - `running`
 - `succeeded`
 - `failed`
 
 ### preset.category
+
 - `style`
 - `light`
 - `environment`

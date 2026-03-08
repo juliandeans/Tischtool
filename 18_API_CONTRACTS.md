@@ -7,6 +7,7 @@ Codex soll API-Routen nicht erraten. Diese Datei definiert Request- und Response
 ## 1. GET /api/projects
 
 ### Response 200
+
 ```json
 {
   "projects": [
@@ -24,6 +25,7 @@ Codex soll API-Routen nicht erraten. Diese Datei definiert Request- und Response
 ## 2. POST /api/projects
 
 ### Request
+
 ```json
 {
   "name": "Esstisch Müller",
@@ -32,6 +34,7 @@ Codex soll API-Routen nicht erraten. Diese Datei definiert Request- und Response
 ```
 
 ### Response 201
+
 ```json
 {
   "project": {
@@ -46,11 +49,13 @@ Codex soll API-Routen nicht erraten. Diese Datei definiert Request- und Response
 Multipart Upload.
 
 ### Felder
+
 - `projectId`
 - `file`
 - `type`
 
 ### Response 201
+
 ```json
 {
   "image": {
@@ -65,6 +70,7 @@ Multipart Upload.
 ## 4. GET /api/projects/:id/images
 
 ### Response 200
+
 ```json
 {
   "images": [
@@ -81,6 +87,7 @@ Multipart Upload.
 ## 5. POST /api/generations
 
 ### Request
+
 ```json
 {
   "projectId": "uuid",
@@ -97,6 +104,7 @@ Multipart Upload.
 ```
 
 ### Für room_insert
+
 ```json
 {
   "projectId": "uuid",
@@ -119,6 +127,7 @@ Multipart Upload.
 ```
 
 ### Response 201
+
 ```json
 {
   "generation": {
@@ -139,6 +148,7 @@ Multipart Upload.
 ## 6. GET /api/costs/summary
 
 ### Response 200
+
 ```json
 {
   "today": 0.42,
@@ -147,7 +157,7 @@ Multipart Upload.
   "mostExpensiveProject": {
     "projectId": "uuid",
     "name": "Esstisch Müller",
-    "total": 2.90
+    "total": 2.9
   }
 }
 ```
@@ -155,6 +165,7 @@ Multipart Upload.
 ## 7. GET /api/costs/logs
 
 ### Response 200
+
 ```json
 {
   "logs": [

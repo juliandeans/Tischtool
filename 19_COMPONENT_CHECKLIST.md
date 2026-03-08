@@ -7,11 +7,13 @@ Codex soll jede Komponente bewusst bauen, statt nebenbei improvisierte UI-Fragme
 ## Layout
 
 ### AppShell.svelte
+
 - Sidebar
 - Content Slot
 - konsistente Page Padding
 
 ### Sidebar.svelte
+
 - Navigation Links
 - aktiver Zustand
 - konsistente Icons optional
@@ -19,33 +21,39 @@ Codex soll jede Komponente bewusst bauen, statt nebenbei improvisierte UI-Fragme
 ## UI-Komponenten
 
 ### Button.svelte
+
 - Varianten: primary, secondary, danger
 - Inset Shadow
 - disabled state
 - loading state optional
 
 ### IconButton.svelte
+
 - für Download/Edit
 - kompakte Größe
 - Tooltip-Slot optional
 
 ### Card.svelte
+
 - Border
 - Radius
 - kein Drop Shadow
 
 ### Input.svelte
+
 - Label
 - Description optional
 - Error-State
 - Inset Shadow
 
 ### Select.svelte
+
 - Label
 - Options
 - Inset Shadow
 
 ### EmptyState.svelte
+
 - Titel
 - Beschreibung
 - CTA optional
@@ -53,6 +61,7 @@ Codex soll jede Komponente bewusst bauen, statt nebenbei improvisierte UI-Fragme
 ## Projekte
 
 ### ProjectCard.svelte
+
 - Titel
 - Meta
 - Cover
@@ -61,6 +70,7 @@ Codex soll jede Komponente bewusst bauen, statt nebenbei improvisierte UI-Fragme
 ## Library
 
 ### ImageCard.svelte
+
 - Thumbnail
 - Meta
 - Hover-Overlay
@@ -68,6 +78,7 @@ Codex soll jede Komponente bewusst bauen, statt nebenbei improvisierte UI-Fragme
 - Edit Icon
 
 ### LibraryGrid.svelte
+
 - responsives Grid
 - Empty State
 - Loading State
@@ -75,11 +86,13 @@ Codex soll jede Komponente bewusst bauen, statt nebenbei improvisierte UI-Fragme
 ## Editor
 
 ### EditorCanvas.svelte
+
 - Bildanzeige
 - Zoom optional nur später
 - sauber zentriert
 
 ### EditorSidebar.svelte
+
 - Modus-Auswahl
 - Stil-Preset
 - Licht-Preset
@@ -88,12 +101,14 @@ Codex soll jede Komponente bewusst bauen, statt nebenbei improvisierte UI-Fragme
 - Generate Button
 
 ### ModeTabs.svelte
+
 - environment_edit
 - material_edit
 
 ## Room Insert
 
 ### RoomPlacementCanvas.svelte
+
 - Raumfoto anzeigen
 - Klick speichern
 - Drag für Box
@@ -101,6 +116,7 @@ Codex soll jede Komponente bewusst bauen, statt nebenbei improvisierte UI-Fragme
 - Reset möglich
 
 ### RoomInsertSidebar.svelte
+
 - Möbelbildauswahl
 - Stil
 - Licht
@@ -110,12 +126,14 @@ Codex soll jede Komponente bewusst bauen, statt nebenbei improvisierte UI-Fragme
 ## Costs
 
 ### CostSummaryCards.svelte
+
 - heute
 - Monat
 - Durchschnitt
 - teuerstes Projekt
 
 ### CostTable.svelte
+
 - Datum
 - Projekt
 - Modell

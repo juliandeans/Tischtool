@@ -3,6 +3,7 @@
 Dieses Paket ist dafür gedacht, die komplette App mit GPT Codex möglichst geradlinig und ohne Architektur-Chaos aufzubauen.
 
 Der Fokus liegt auf:
+
 - klaren Produktgrenzen
 - fester Tech-Entscheidung
 - exakter Umsetzungsreihenfolge
@@ -19,12 +20,14 @@ Codex soll mit wenigen, klar getrennten Prompts die App in Phasen bauen können,
 ## Enthaltene Dateien
 
 ### Produkt und UX
+
 - `01_PRODUKTVISION_UND_SCOPE.md`
 - `02_UX_UI_KONZEPT.md`
 - `03_DESIGNSYSTEM.md`
 - `04_INFORMATIONSARCHITEKTUR_UND_SCREENS.md`
 
 ### Architektur
+
 - `05_FRONTEND_ARCHITEKTUR_SVELTEKIT.md`
 - `06_BACKEND_ARCHITEKTUR.md`
 - `07_DATENMODELL_UND_STORAGE.md`
@@ -33,6 +36,7 @@ Codex soll mit wenigen, klar getrennten Prompts die App in Phasen bauen können,
 - `10_ROOM_INSERT_FEATURE.md`
 
 ### Umsetzung
+
 - `11_MVP_ROADMAP.md`
 - `12_IMPLEMENTATION_PLAN_FUER_CODEX.md`
 - `13_CODEX_PROMPTS.md`
@@ -40,6 +44,7 @@ Codex soll mit wenigen, klar getrennten Prompts die App in Phasen bauen können,
 - `15_AGENTS_MD_VORSCHLAG.md`
 
 ### Neue technische Spezifikation für Codex
+
 - `16_REPO_STRUCTURE.md`
 - `17_DRIZZLE_SCHEMA_SPEC.md`
 - `18_API_CONTRACTS.md`

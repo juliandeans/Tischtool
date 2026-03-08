@@ -18,6 +18,7 @@ Stattdessen feste Templates.
 ## Fester Systemblock
 
 Immer enthalten:
+
 - Hauptobjekt erhalten
 - Perspektive erhalten
 - Maßstab und Konstruktion erhalten
@@ -51,6 +52,7 @@ Füge keine weiteren Möbel hinzu.
 ```
 
 ## Stil-Presets
+
 - Original
 - ruhig / minimal
 - wohnlich
@@ -59,6 +61,7 @@ Füge keine weiteren Möbel hinzu.
 - elegant / gedämpft
 
 ## Licht-Presets
+
 - Original
 - Tageslicht
 - warmes Abendlicht

@@ -76,6 +76,7 @@ src/
 ## RoomPlacementCanvas
 
 Funktionen:
+
 - Raumfoto laden
 - Klick erfassen
 - optional Box ziehen
@@ -85,12 +86,14 @@ Funktionen:
 ## State-Aufteilung
 
 Lokaler UI-State:
+
 - Auswahlfelder
 - Hover-Zustände
 - aktive Presets
 - modale Fenster
 
 Server-State:
+
 - Projekte
 - Bilder
 - Generierungen

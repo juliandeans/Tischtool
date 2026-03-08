@@ -3,6 +3,7 @@
 ## Phase 1 – Grundgerüst
 
 Fertig, wenn:
+
 - SvelteKit läuft
 - Sidebar sichtbar ist
 - alle Hauptrouten existieren
@@ -11,6 +12,7 @@ Fertig, wenn:
 ## Phase 2 – Datenmodell
 
 Fertig, wenn:
+
 - Drizzle-Schema existiert
 - Migration erzeugbar ist
 - Services als Module vorhanden sind
@@ -19,6 +21,7 @@ Fertig, wenn:
 ## Phase 3 – Upload und Library
 
 Fertig, wenn:
+
 - Upload funktioniert
 - Datei gespeichert wird
 - Thumbnail erzeugt wird
@@ -28,6 +31,7 @@ Fertig, wenn:
 ## Phase 4 – environment_edit
 
 Fertig, wenn:
+
 - Editor lädt
 - Sidebar steuerbar ist
 - Generierungsrequest rausgeht
@@ -37,6 +41,7 @@ Fertig, wenn:
 ## Phase 5 – material_edit
 
 Fertig, wenn:
+
 - Modus umschaltbar ist
 - Prompt Builder material_edit erzeugt
 - Ergebnisse gespeichert werden
@@ -44,6 +49,7 @@ Fertig, wenn:
 ## Phase 6 – room_insert
 
 Fertig, wenn:
+
 - Raumfoto-Screen funktioniert
 - Klickposition gespeichert wird
 - optionale Zielgröße funktioniert
@@ -52,6 +58,7 @@ Fertig, wenn:
 ## Phase 7 – costs
 
 Fertig, wenn:
+
 - Summary-Endpunkt funktioniert
 - Costs-Tabelle funktioniert
 - Kosten-Screen sichtbar ist
@@ -59,6 +66,7 @@ Fertig, wenn:
 ## Phase 8 – Stabilisierung
 
 Fertig, wenn:
+
 - keine offensichtlichen toten Pfade vorhanden sind
 - Error States existieren
 - Loading States existieren

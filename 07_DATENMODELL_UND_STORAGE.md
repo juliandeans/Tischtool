@@ -3,12 +3,14 @@
 ## Tabellen
 
 ### users
+
 - id
 - email
 - name
 - created_at
 
 ### projects
+
 - id
 - user_id
 - name
@@ -18,6 +20,7 @@
 - updated_at
 
 ### images
+
 - id
 - project_id
 - user_id
@@ -38,6 +41,7 @@
 - created_at
 
 ### generations
+
 - id
 - project_id
 - user_id
@@ -57,6 +61,7 @@
 - created_at
 
 ### presets
+
 - id
 - user_id nullable
 - category
@@ -66,6 +71,7 @@
 - created_at
 
 ### cost_logs
+
 - id
 - generation_id
 - provider
@@ -80,6 +86,7 @@
 ## Modi
 
 `mode` in `generations`:
+
 - `environment_edit`
 - `material_edit`
 - `room_insert`
@@ -87,6 +94,7 @@
 ## Parent-Child-Kette
 
 Beispiel:
+
 - Originalbild
   - Variante A
     - Variante A1

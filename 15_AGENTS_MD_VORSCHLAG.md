@@ -10,6 +10,7 @@ Lege diese Datei in die Projektwurzel.
 Baue eine minimalistische Möbel-Visualisierungs-Web-App mit SvelteKit und TypeScript.
 
 Die App hat drei Kernmodi:
+
 1. Umgebung eines Möbelbilds ändern
 2. Material eines Möbelbilds ändern
 3. Möbel in ein Kundenfoto einsetzen

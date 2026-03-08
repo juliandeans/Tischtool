@@ -21,6 +21,7 @@ Ohne dekorative Software-Effekte.
 - Bauhaus Yellow: `#F2C500`
 
 Neutrale Farben:
+
 - Hintergrund: `#F7F7F4`
 - Surface: `#FFFFFF`
 - Text: `#111111`
@@ -37,22 +38,25 @@ Neutrale Farben:
 ## Shadow
 
 ```css
---inset-shadow: inset 0 0 0 2px rgba(0,0,0,0.06);
+--inset-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.06);
 ```
 
 ## Buttons
 
 Primary:
+
 - blau
 - weißer Text
 - inset shadow
 
 Secondary:
+
 - helle Fläche
 - dunkler Text
 - inset shadow
 
 Danger:
+
 - rot
 - weißer Text
 - inset shadow
@@ -74,6 +78,7 @@ Danger:
 ## Typografie
 
 Empfehlung:
+
 - Inter oder Geist
 - sachlich, kein Display-Font
 

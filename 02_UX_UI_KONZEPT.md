@@ -11,6 +11,7 @@ Nicht wie ein Enterprise-Dashboard.
 ## Navigation
 
 Linke Sidebar:
+
 - Projekte
 - Library
 - Editor
@@ -28,14 +29,17 @@ Einstellungen sitzen rechts in einer kompakten Sidebar.
 ## Editor-Modi
 
 ### Umgebung ändern
+
 Fokus:
 Hintergrund, Wand, Licht, Atmosphäre, kleine Zusätze.
 
 ### Material ändern
+
 Fokus:
 Holzart, Oberfläche, Materialcharakter.
 
 ### Raumfoto einsetzen
+
 Fokus:
 Hintergrundfoto + Möbelbild + Klickplatzierung.
 
@@ -44,6 +48,7 @@ Hintergrundfoto + Möbelbild + Klickplatzierung.
 Die Library ist Arbeitsverlauf und nicht nur Galerie.
 
 Jede Bildkarte zeigt:
+
 - Thumbnail
 - Bildname
 - Projekt
@@ -51,6 +56,7 @@ Jede Bildkarte zeigt:
 - Status optional
 
 Hover oben rechts:
+
 - Download
 - Edit
 
@@ -66,6 +72,7 @@ Hover oben rechts:
 ## Standardschutzregeln
 
 Standardmäßig aktiv:
+
 - Objekt erhalten
 - Perspektive erhalten
 - Bildausschnitt möglichst erhalten
@@ -75,6 +82,7 @@ Standardmäßig aktiv:
 ## Raumfoto-Modus
 
 Ablauf:
+
 1. Raumfoto hochladen
 2. Möbelbild hochladen
 3. Klick in Raumfoto
