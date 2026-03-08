@@ -1,6 +1,7 @@
 import type {
   CreateGenerationInput,
   PromptDebugEntry,
+  PromptInstructionDebug,
   PromptProtectionRuleDebug,
   ProtectionRuleKey
 } from '$lib/types/generation';
@@ -53,6 +54,14 @@ const MATERIAL_RULES: MaterialRuleDefinition[] = [
   }
 ];
 
+const buildSection = (title: string, lines: string[]) =>
+  [title, ...lines.map((line) => `- ${line}`)].join('\n');
+
+const uniqueLines = (lines: Array<string | null | undefined>) =>
+  Array.from(
+    new Set(lines.map((line) => line?.trim()).filter((line): line is string => Boolean(line)))
+  );
+
 const getRuleState = (input: CreateGenerationInput, key: ProtectionRuleKey) => {
   if (typeof input.protectionRules?.[key] === 'boolean') {
     return input.protectionRules[key] as boolean;
@@ -95,33 +104,43 @@ export const getMaterialModeParameters = (input: CreateGenerationInput): PromptD
     {
       label: 'Oberfläche',
       value: input.surfaceDescription.trim() || 'keine zusätzliche Vorgabe'
-    },
-    {
-      label: 'Zusätzliche Hinweise',
-      value: input.instructions.trim() || 'keine'
     }
   ];
 };
 
-export const buildMaterialEditPrompt = (input: CreateGenerationInput) => {
+export const buildMaterialEditPrompt = (
+  input: CreateGenerationInput,
+  instructionDebug: PromptInstructionDebug
+) => {
   const materialFragment =
     (input.targetMaterial && MATERIAL_TARGET_FRAGMENTS[input.targetMaterial]) ||
     MATERIAL_TARGET_FRAGMENTS['oak-light'];
   const protectionRules = getMaterialProtectionRules(input);
-
-  return [
-    'Du bearbeitest ein Möbel-Visualisierungsbild für eine Kundenpräsentation.',
-    'Ändere ausschließlich das Material des Möbels.',
-    ...protectionRules
-      .map((rule) => rule.appliedFragment)
-      .filter((fragment): fragment is string => Boolean(fragment)),
+  const preservationRules = uniqueLines(protectionRules.map((rule) => rule.appliedFragment));
+  const changeAreaRules = uniqueLines([
+    'Ändere ausschließlich Material und Oberflächenwirkung des Möbels.',
     `Zielmaterial: ${materialFragment}.`,
     input.surfaceDescription
       ? `Oberflächenbeschreibung: ${input.surfaceDescription}.`
-      : 'Oberflächenbeschreibung: keine zusätzliche Vorgabe.',
-    input.instructions
-      ? `Zusätzliche Hinweise: ${input.instructions}.`
-      : 'Keine zusätzlichen Hinweise vom Nutzer.',
-    `Erzeuge ${input.variantsRequested} plausible Materialvarianten für eine glaubwürdige Kundenvisualisierung.`
-  ].join('\n');
+      : 'Oberflächenbeschreibung: keine zusätzliche Vorgabe.'
+  ]);
+  const styleLines = ['Kein separates Stil-Preset: Behalte die vorhandene Stilwirkung bei.'];
+  const lightLines = ['Kein separates Licht-Preset: Behalte die vorhandene Lichtsituation bei.'];
+
+  return [
+    buildSection('Kontext:', [
+      'Du bearbeitest ein Möbel-Visualisierungsbild für eine Kundenpräsentation.',
+      'Der Fokus liegt ausschließlich auf Material und Oberflächenwirkung des Möbels.'
+    ]),
+    buildSection('Erhaltungsregeln:', preservationRules),
+    buildSection('Änderungsbereich:', changeAreaRules),
+    buildSection('Stil:', styleLines),
+    buildSection('Licht:', lightLines),
+    ...(instructionDebug.normalizedLines.length
+      ? [buildSection('Entscheidende zusätzliche Hinweise:', instructionDebug.normalizedLines)]
+      : []),
+    buildSection('Ausgabeziel:', [
+      `Erzeuge ${input.variantsRequested} plausible Materialvarianten für eine glaubwürdige Kundenvisualisierung.`
+    ])
+  ].join('\n\n');
 };

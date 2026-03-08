@@ -38,7 +38,33 @@
       {:else if preview}
         <div class="prompt-debug__section">
           <strong>Finaler Prompt</strong>
-          <pre class="prompt-debug__code">{preview.fullPromptText}</pre>
+          <pre class="prompt-debug__code">{preview.promptText}</pre>
+        </div>
+
+        <div class="prompt-debug__section">
+          <strong>Nutzereingabe</strong>
+          <div class="prompt-debug__list">
+            <div class="prompt-debug__item">
+              <div class="prompt-debug__item-head">
+                <span>Roh</span>
+              </div>
+              <p>{preview.instructionDebug.rawInput || 'keine'}</p>
+            </div>
+            <div class="prompt-debug__item">
+              <div class="prompt-debug__item-head">
+                <span>Normalisierte Liste</span>
+              </div>
+              {#if preview.instructionDebug.normalizedLines.length}
+                <ul class="prompt-debug__bullet-list">
+                  {#each preview.instructionDebug.normalizedLines as line}
+                    <li>{line}</li>
+                  {/each}
+                </ul>
+              {:else}
+                <p>keine zusätzlichen Anforderungen</p>
+              {/if}
+            </div>
+          </div>
         </div>
 
         <div class="prompt-debug__section">
@@ -229,6 +255,14 @@
   .prompt-debug__item p {
     color: var(--color-text-muted);
     margin: 0;
+  }
+
+  .prompt-debug__bullet-list {
+    color: var(--color-text-muted);
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding-left: 20px;
   }
 
   .prompt-debug__item-head {

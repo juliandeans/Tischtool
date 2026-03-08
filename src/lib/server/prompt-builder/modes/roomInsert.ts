@@ -1,6 +1,7 @@
 import type {
   CreateGenerationInput,
   PromptDebugEntry,
+  PromptInstructionDebug,
   PromptPresetEffect,
   PromptProtectionRuleDebug,
   ProtectionRuleKey
@@ -53,6 +54,14 @@ const ROOM_INSERT_RULES: RoomInsertRuleDefinition[] = [
     disabledFragment: 'Halte Licht und Schatten möglichst neutral und zurückhaltend.'
   }
 ];
+
+const buildSection = (title: string, lines: string[]) =>
+  [title, ...lines.map((line) => `- ${line}`)].join('\n');
+
+const uniqueLines = (lines: Array<string | null | undefined>) =>
+  Array.from(
+    new Set(lines.map((line) => line?.trim()).filter((line): line is string => Boolean(line)))
+  );
 
 const getRuleState = (input: CreateGenerationInput, key: ProtectionRuleKey) => {
   if (typeof input.protectionRules?.[key] === 'boolean') {
@@ -115,30 +124,60 @@ export const getRoomInsertModeParameters = (input: CreateGenerationInput): Promp
     value: input.placement
       ? `${input.placement.x}, ${input.placement.y} · ${input.placement.width} × ${input.placement.height}`
       : 'noch nicht gesetzt'
-  },
-  {
-    label: 'Zusätzliche Hinweise',
-    value: input.instructions.trim() || 'keine'
   }
 ];
 
-export const buildRoomInsertPrompt = (input: CreateGenerationInput) => {
+export const buildRoomInsertPrompt = (
+  input: CreateGenerationInput,
+  instructionDebug: PromptInstructionDebug
+) => {
   const presetEffects = getRoomInsertPresetEffects(input);
   const protectionRules = getRoomInsertProtectionRules(input);
+  const preservationRules = uniqueLines(
+    protectionRules
+      .filter((rule) =>
+        ['preserveObject', 'preservePerspective', 'noExtraFurniture'].includes(rule.key)
+      )
+      .map((rule) => rule.appliedFragment)
+  );
+  const changeAreaRules = uniqueLines([
+    protectionRules.find((rule) => rule.key === 'adaptLighting')?.appliedFragment,
+    'Setze das Möbel plausibel in die markierte Zielregion ein.'
+  ]);
+  const placementLines = input.placement
+    ? [
+        `Raumfoto-ID: ${input.placement.roomImageId}.`,
+        `Zielregion: x=${input.placement.x}, y=${input.placement.y}, width=${input.placement.width}, height=${input.placement.height}.`
+      ]
+    : [
+        'Setze das Möbel plausibel in das Raumfoto ein.',
+        'Die Zielregion ist aktuell noch nicht gesetzt.'
+      ];
+  const styleLines = uniqueLines(
+    presetEffects
+      .filter((effect) => effect.label === 'Stil-Preset')
+      .map((effect) => effect.appliedFragment)
+  );
+  const lightLines = uniqueLines(
+    presetEffects
+      .filter((effect) => effect.label === 'Licht-Preset')
+      .map((effect) => effect.appliedFragment)
+  );
 
   return [
-    'Du setzt ein Möbelbild plausibel in ein Raumfoto für eine Kundenpräsentation ein.',
-    'Die Position befindet sich in der markierten Zielregion.',
-    ...protectionRules
-      .map((rule) => rule.appliedFragment)
-      .filter((fragment): fragment is string => Boolean(fragment)),
-    ...presetEffects.map((effect) => effect.appliedFragment),
-    input.placement
-      ? `Zielregion: roomImageId=${input.placement.roomImageId}, x=${input.placement.x}, y=${input.placement.y}, width=${input.placement.width}, height=${input.placement.height}.`
-      : 'Zielregion fehlt.',
-    input.instructions
-      ? `Zusätzliche Hinweise: ${input.instructions}.`
-      : 'Keine zusätzlichen Hinweise vom Nutzer.',
-    `Erzeuge ${input.variantsRequested} plausible Varianten für eine glaubwürdige Raumvorschau.`
-  ].join('\n');
+    buildSection('Kontext:', [
+      'Du setzt ein Möbelbild plausibel in ein Raumfoto für eine Kundenpräsentation ein.',
+      ...placementLines
+    ]),
+    buildSection('Erhaltungsregeln:', preservationRules),
+    buildSection('Änderungsbereich:', changeAreaRules),
+    buildSection('Stil:', styleLines),
+    buildSection('Licht:', lightLines),
+    ...(instructionDebug.normalizedLines.length
+      ? [buildSection('Entscheidende zusätzliche Hinweise:', instructionDebug.normalizedLines)]
+      : []),
+    buildSection('Ausgabeziel:', [
+      `Erzeuge ${input.variantsRequested} plausible Varianten für eine glaubwürdige Raumvorschau.`
+    ])
+  ].join('\n\n');
 };

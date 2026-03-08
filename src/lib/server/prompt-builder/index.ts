@@ -2,6 +2,7 @@ import type {
   CreateGenerationInput,
   GenerationMode,
   PromptDebugPreview,
+  PromptInstructionDebug,
   PromptPresetEffect,
   PromptProtectionRuleDebug
 } from '$lib/types/generation';
@@ -23,9 +24,13 @@ import {
   getRoomInsertPresetEffects,
   getRoomInsertProtectionRules
 } from '$lib/server/prompt-builder/modes/roomInsert';
+import { normalizeUserInstructions } from '$lib/server/prompt-builder/normalizeInstructions';
 import { vertexImageService } from '$lib/server/vertex/image';
 
-const MODE_BUILDERS: Record<GenerationMode, (input: CreateGenerationInput) => string> = {
+const MODE_BUILDERS: Record<
+  GenerationMode,
+  (input: CreateGenerationInput, instructionDebug: PromptInstructionDebug) => string
+> = {
   environment_edit: buildEnvironmentEditPrompt,
   material_edit: buildMaterialEditPrompt,
   room_insert: buildRoomInsertPrompt
@@ -38,7 +43,7 @@ const MODE_LABELS: Record<GenerationMode, string> = {
 };
 
 const COMMON_SYSTEM_LINES = [
-  'Arbeite kontrolliert und deterministisch für eine plausible Kundenvisualisierung.'
+  'Arbeite kontrolliert, deterministisch und ohne freie Improvisation für eine plausible Kundenvisualisierung.'
 ];
 
 const getModePresetEffects = (input: CreateGenerationInput): PromptPresetEffect[] => {
@@ -74,28 +79,23 @@ const getModeParameters = (input: CreateGenerationInput) => {
 export class PromptBuilder {
   build(input: CreateGenerationInput) {
     const builder = MODE_BUILDERS[input.mode];
-    const promptText = builder(input);
+    const instructionDebug = normalizeUserInstructions(input.instructions);
+    const promptText = builder(input, instructionDebug);
     const presetEffects = getModePresetEffects(input);
     const protectionRules = getModeProtectionRules(input);
     const modeParameters = getModeParameters(input);
-    const systemPromptText = [...COMMON_SYSTEM_LINES]
-      .concat(
-        protectionRules
-          .filter((rule) => rule.enabled)
-          .map((rule) => rule.appliedFragment)
-          .filter((fragment): fragment is string => Boolean(fragment))
-      )
-      .join('\n');
+    const systemPromptText = COMMON_SYSTEM_LINES.join('\n');
     const requestPreview = vertexImageService.prepareRequest(input, promptText);
     const promptDebug: PromptDebugPreview = {
       mode: input.mode,
       modeLabel: MODE_LABELS[input.mode],
       systemPromptText,
       promptText,
-      fullPromptText: [systemPromptText, promptText].filter(Boolean).join('\n\n'),
+      fullPromptText: promptText,
       presetEffects,
       protectionRules,
       modeParameters,
+      instructionDebug,
       requestPreview: {
         provider: requestPreview.provider,
         model: requestPreview.model,
@@ -117,6 +117,7 @@ export class PromptBuilder {
         presetEffects,
         protectionRules,
         modeParameters,
+        instructionDebug,
         outputGoal: `${input.variantsRequested} Varianten`
       }
     };

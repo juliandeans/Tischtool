@@ -56,6 +56,11 @@ export type PromptDebugEntry = {
   value: string;
 };
 
+export type PromptInstructionDebug = {
+  rawInput: string;
+  normalizedLines: string[];
+};
+
 export type PromptDebugPreview = {
   mode: GenerationMode;
   modeLabel: string;
@@ -65,6 +70,7 @@ export type PromptDebugPreview = {
   presetEffects: PromptPresetEffect[];
   protectionRules: PromptProtectionRuleDebug[];
   modeParameters: PromptDebugEntry[];
+  instructionDebug: PromptInstructionDebug;
   requestPreview: {
     provider: string;
     model: string;
