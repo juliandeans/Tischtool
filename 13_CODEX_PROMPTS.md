@@ -1,14 +1,12 @@
 # Codex-Prompts
 
-Diese Prompts sind so geschrieben, dass Codex in klaren Abschnitten arbeiten kann.
-
 ## Prompt 1 – Projektgerüst
 
 Baue die erste lauffähige Version der App als SvelteKit-Projekt mit TypeScript. Lege die komplette Grundstruktur für die Routen `/projects`, `/library`, `/editor/[imageId]`, `/room-insert`, `/costs`, `/settings` an. Erstelle eine minimale AppShell mit linker Sidebar und Platzhaltern für alle Seiten. Verwende das Designsystem aus `03_DESIGNSYSTEM.md`. Nutze keine unnötigen Bibliotheken. Halte die Struktur sauber und modular. Schreibe am Ende kurz, welche Dateien du angelegt hast und was noch Platzhalter ist.
 
 ## Prompt 2 – Datenmodell und Backend-Skelett
 
-Lies die Dateien `06_BACKEND_ARCHITEKTUR.md` und `07_DATENMODELL_UND_STORAGE.md` und implementiere daraus das Backend-Skelett. Erstelle das Datenbankschema, die Service-Module `ProjectService`, `ImageService`, `GenerationService`, `PromptBuilder`, `VertexImageService`, `RoomPlacementService`, `CostService` sowie die ersten API-Routen. Noch keine vollständige Business-Logik erfinden, sondern belastbare Grundstruktur. Dokumentiere zum Schluss kurz die Architekturentscheidungen.
+Lies die Dateien `06_BACKEND_ARCHITEKTUR.md`, `07_DATENMODELL_UND_STORAGE.md`, `16_REPO_STRUCTURE.md` und `17_DRIZZLE_SCHEMA_SPEC.md` und implementiere daraus das Backend-Skelett. Erstelle das Datenbankschema, die Service-Module `ProjectService`, `ImageService`, `GenerationService`, `PromptBuilder`, `VertexImageService`, `RoomPlacementService`, `CostService` sowie die ersten API-Routen. Noch keine vollständige Business-Logik erfinden, sondern belastbare Grundstruktur. Dokumentiere zum Schluss kurz die Architekturentscheidungen.
 
 ## Prompt 3 – Upload und Library
 
@@ -16,7 +14,7 @@ Implementiere Upload, Thumbnail-Erzeugung, Bildspeicherung und den kompletten Li
 
 ## Prompt 4 – Editor environment_edit
 
-Baue den normalen Editor für `environment_edit`. Implementiere `EditorSidebar.svelte`, Preset-Auswahl, Variantenanzahl, Zusatzhinweise und den kompletten Frontend-zu-Backend-Flow für Generierungen. Nutze die Prompt-Logik aus `08_PROMPT_ENGINE_UND_VERTEX_AI_LOGIK.md`. Speichere generierte Bilder als neue Versionen mit Parent-Beziehung.
+Baue den normalen Editor für `environment_edit`. Implementiere `EditorSidebar.svelte`, Preset-Auswahl, Variantenanzahl, Zusatzhinweise und den kompletten Frontend-zu-Backend-Flow für Generierungen. Nutze die Prompt-Logik aus `08_PROMPT_ENGINE_UND_VERTEX_AI_LOGIK.md` und die API-Verträge aus `18_API_CONTRACTS.md`. Speichere generierte Bilder als neue Versionen mit Parent-Beziehung.
 
 ## Prompt 5 – Materialmodus
 

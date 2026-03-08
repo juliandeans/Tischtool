@@ -10,7 +10,7 @@ Codex soll pro Phase:
 1. lesen
 2. planen
 3. die betroffenen Dateien ändern
-4. wenn möglich lokal testen
+4. lokal testen, wenn möglich
 5. kurz dokumentieren, was gebaut wurde
 
 ## Phase A – Projektgerüst
@@ -23,19 +23,13 @@ Codex soll:
 - AppShell mit Sidebar anlegen
 - leere Seiten für alle Hauptrouten anlegen
 
-Ergebnis:
-Die App startet und alle Hauptseiten sind erreichbar.
-
 ## Phase B – Datenmodell und Backend-Skelett
 
 Codex soll:
 - DB-Schema anlegen
-- Services als leere/teilweise implementierte Klassen oder Module anlegen
+- Services als Module anlegen
 - API-Endpunkte als Skelett anlegen
 - Storage-Abstraktion anlegen
-
-Ergebnis:
-Projekt, Bild, Generierung und Kosten sind als Datenmodell definiert.
 
 ## Phase C – Upload und Library
 
@@ -47,20 +41,14 @@ Codex soll:
 - Download-Hover
 - Edit-Hover
 
-Ergebnis:
-Bilder lassen sich hochladen, sehen und herunterladen.
-
 ## Phase D – Editor environment_edit
 
 Codex soll:
 - Editor-Screen bauen
 - Sidebar-Felder implementieren
 - Prompt Builder für environment_edit implementieren
-- Generierungs-Flow vom Frontend bis Backend herstellen
+- Generierungs-Flow herstellen
 - Ergebnisse als neue Bilder speichern
-
-Ergebnis:
-Aus einem Bild werden neue Umgebungsvarianten erzeugt.
 
 ## Phase E – material_edit
 
@@ -68,9 +56,6 @@ Codex soll:
 - Materialmodus ergänzen
 - Prompt-Builder erweitern
 - UI-Modusumschaltung einbauen
-
-Ergebnis:
-Materialvarianten funktionieren.
 
 ## Phase F – room_insert
 
@@ -81,20 +66,9 @@ Codex soll:
 - Backend-Flow room_insert ergänzen
 - Ergebnisse speichern
 
-Ergebnis:
-Möbel können grob in Kundenfotos gesetzt werden.
-
 ## Phase G – Kosten
 
 Codex soll:
 - Costs-Tabelle füllen
 - Summary-Endpunkte bauen
 - Kosten-Screen bauen
-
-Ergebnis:
-Kosten sind sichtbar.
-
-## Arbeitsregel für Codex
-
-Codex soll pro Phase nicht bereits die nächste halbe Phase erraten.
-Erst sauber fertig bauen, dann weiter.

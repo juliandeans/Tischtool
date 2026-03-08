@@ -63,22 +63,8 @@ SvelteKit Server-Routes + Service-Schicht.
 
 ## Job-Modell
 
-Für MVP möglich:
+Für MVP:
 - synchroner Request mit Ladezustand
 
 Später:
 - Job-Tabelle + Queue
-
-## Endpunkte
-
-- `GET /api/projects`
-- `POST /api/projects`
-- `GET /api/projects/:id`
-- `POST /api/uploads`
-- `GET /api/images/:id`
-- `GET /api/projects/:id/images`
-- `POST /api/generations`
-- `POST /api/images/:id/regenerate`
-- `GET /api/costs/summary`
-- `GET /api/costs/logs`
-- `GET /api/presets`

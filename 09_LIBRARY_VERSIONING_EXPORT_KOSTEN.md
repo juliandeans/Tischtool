@@ -48,7 +48,3 @@ Darunter:
 - Tabelle aller Requests
 - Diagramm Kosten pro Tag
 - Diagramm Kosten pro Projekt
-
-## Warum Kosten ein eigener Bereich sind
-
-Bild-Requests kosten einzeln oft nur Centbeträge, summieren sich aber durch Varianten und Iterationen. Ein sichtbarer Kostenbereich macht das Produkt kontrollierbarer.

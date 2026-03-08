@@ -1,6 +1,6 @@
 # Vorschlag für `AGENTS.md`
 
-Lege diese Datei in die Projektwurzel, damit Codex sofort Projektregeln sieht.
+Lege diese Datei in die Projektwurzel.
 
 ```md
 # AGENTS.md
@@ -46,7 +46,3 @@ Die App hat drei Kernmodi:
 - dokumentiere kurz nach jeder größeren Phase, was geändert wurde
 - wenn etwas unklar ist, richte dich nach den Markdown-Dokumenten im Projekt
 ```
-
-## Hinweis
-
-Codex unterstützt projektbezogene Anleitung und Skills/Projektkontext. Eine klare Projektdatei wie `AGENTS.md` passt deshalb sehr gut in den Workflow. citeturn0search15turn0search20

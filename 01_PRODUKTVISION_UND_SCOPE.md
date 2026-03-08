@@ -51,7 +51,6 @@ Primär:
 
 Enthalten:
 - Web-App
-- Login optional / zunächst einfacher Single-User-Modus möglich
 - Projekte
 - Bild-Upload
 - Varianten-Library

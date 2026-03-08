@@ -6,12 +6,7 @@
 - TypeScript
 - CSS-Token oder Tailwind mit eigener Designschicht
 - Svelte Stores
-- Drizzle oder Prisma für Typenbezug aus dem Backend optional
 - Canvas oder Konva für Platzierungsmodus
-
-## Warum SvelteKit
-
-SvelteKit ist für diese App gut geeignet, weil Routing, Server-Logik, Form-Handling und eine saubere Komponentenstruktur in einem Stack zusammenkommen. Für einen agentischen Coding-Workflow mit Codex ist das hilfreich, weil nicht zwei lose Projekte koordiniert werden müssen. Codex kann in Projektordnern arbeiten, Änderungen durchführen und in der IDE oder im CLI iterieren, daher ist ein kompakter Stack von Vorteil. citeturn0search1turn0search12
 
 ## Empfohlene Struktur
 
@@ -80,8 +75,6 @@ src/
 
 ## RoomPlacementCanvas
 
-Diese Komponente ist zentral für den Raumfoto-Modus.
-
 Funktionen:
 - Raumfoto laden
 - Klick erfassen
@@ -108,13 +101,3 @@ Server-State:
 
 Das Frontend spricht nie direkt mit Google.
 Nur mit dem eigenen Backend.
-
-## Download-Hover
-
-ImageCard zeigt bei Hover zwei Buttons:
-- Download
-- Edit
-
-Download kann:
-- direkt signierte URL öffnen
-- oder Backend-Download-Endpoint benutzen

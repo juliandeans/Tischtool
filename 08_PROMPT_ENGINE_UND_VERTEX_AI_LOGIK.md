@@ -50,9 +50,7 @@ Passe Licht und Schatten so an, dass das Ergebnis wie eine glaubwürdige Kundenv
 Füge keine weiteren Möbel hinzu.
 ```
 
-## Presets
-
-### Stil
+## Stil-Presets
 - Original
 - ruhig / minimal
 - wohnlich
@@ -60,18 +58,10 @@ Füge keine weiteren Möbel hinzu.
 - hell / freundlich
 - elegant / gedämpft
 
-### Licht
+## Licht-Presets
 - Original
 - Tageslicht
 - warmes Abendlicht
 - gedimmtes Licht
 - Kerzenlicht
 - diffuses weiches Licht
-
-## Vertex-AI-Rolle
-
-Google Vertex AI dokumentiert Bildbearbeitung, Objekt-Einfügen und maskenbasierte Workflows über die Bild-APIs. Für den präziseren Edit-/Insert-Fall ist diese Architektur passend, während freiere Bildbearbeitung ebenfalls darüber laufen kann. Das passt gut zu einem Tool, das kontrollierte Möbel-Visualisierungen erzeugen soll. citeturn0search0
-
-## Wichtige Regel
-
-Für den MVP immer lieber zu kontrolliert als zu kreativ.
