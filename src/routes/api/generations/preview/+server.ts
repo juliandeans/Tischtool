@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-import type { PostGenerationRequest, PostGenerationResponse } from '$lib/types/api';
+import type { PostGenerationPreviewRequest, PostGenerationPreviewResponse } from '$lib/types/api';
 import type { GenerationMode } from '$lib/types/generation';
 import { generationService } from '$lib/server/services/GenerationService';
 
@@ -12,7 +12,7 @@ const readProtectionRules = (value: unknown) =>
   value && typeof value === 'object' ? (value as Record<string, boolean>) : undefined;
 
 export const POST: RequestHandler = async ({ request }) => {
-  const body = (await request.json()) as Partial<PostGenerationRequest>;
+  const body = (await request.json()) as Partial<PostGenerationPreviewRequest>;
 
   if (
     !body.projectId ||
@@ -27,8 +27,8 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: 'variantsRequested must be a positive number' }, { status: 400 });
   }
 
-  try {
-    const response = await generationService.createGeneration({
+  const response: PostGenerationPreviewResponse = {
+    promptDebug: generationService.previewGeneration({
       projectId: body.projectId,
       sourceImageId: body.sourceImageId,
       mode: body.mode,
@@ -42,17 +42,8 @@ export const POST: RequestHandler = async ({ request }) => {
       preservePerspective: body.preservePerspective ?? true,
       placement: body.placement ?? null,
       protectionRules: readProtectionRules(body.protectionRules)
-    });
+    })
+  };
 
-    const apiResponse: PostGenerationResponse = response;
-
-    return json(apiResponse, { status: 201 });
-  } catch (error) {
-    return json(
-      {
-        error: error instanceof Error ? error.message : 'Generation failed.'
-      },
-      { status: 500 }
-    );
-  }
+  return json(response);
 };

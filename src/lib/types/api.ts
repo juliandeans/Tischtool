@@ -1,5 +1,9 @@
 import type { CostLogListItem, CostSummary } from '$lib/types/cost';
-import type { CreateGenerationInput, GenerationSummary } from '$lib/types/generation';
+import type {
+  CreateGenerationInput,
+  GenerationSummary,
+  PromptDebugPreview
+} from '$lib/types/generation';
 import type { ImageDetail, ImageSummary } from '$lib/types/image';
 import type { PresetSummary } from '$lib/types/preset';
 import type { CreateProjectInput, ProjectDetail, ProjectSummary } from '$lib/types/project';
@@ -40,6 +44,13 @@ export type PostGenerationRequest = CreateGenerationInput;
 export type PostGenerationResponse = {
   generation: Pick<GenerationSummary, 'id' | 'status' | 'variantsReturned'>;
   images: Pick<ImageSummary, 'id' | 'parentImageId' | 'thumbnailPath'>[];
+  promptDebug: PromptDebugPreview;
+};
+
+export type PostGenerationPreviewRequest = CreateGenerationInput;
+
+export type PostGenerationPreviewResponse = {
+  promptDebug: PromptDebugPreview;
 };
 
 export type GetCostsSummaryResponse = CostSummary;

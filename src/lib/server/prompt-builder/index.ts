@@ -1,8 +1,29 @@
-import type { CreateGenerationInput, GenerationMode } from '$lib/types/generation';
+import type {
+  CreateGenerationInput,
+  GenerationMode,
+  PromptDebugPreview,
+  PromptPresetEffect,
+  PromptProtectionRuleDebug
+} from '$lib/types/generation';
 
-import { buildEnvironmentEditPrompt } from '$lib/server/prompt-builder/modes/environmentEdit';
-import { buildMaterialEditPrompt } from '$lib/server/prompt-builder/modes/materialEdit';
-import { buildRoomInsertPrompt } from '$lib/server/prompt-builder/modes/roomInsert';
+import {
+  buildEnvironmentEditPrompt,
+  getEnvironmentModeParameters,
+  getEnvironmentPresetEffects,
+  getEnvironmentProtectionRules
+} from '$lib/server/prompt-builder/modes/environmentEdit';
+import {
+  buildMaterialEditPrompt,
+  getMaterialModeParameters,
+  getMaterialProtectionRules
+} from '$lib/server/prompt-builder/modes/materialEdit';
+import {
+  buildRoomInsertPrompt,
+  getRoomInsertModeParameters,
+  getRoomInsertPresetEffects,
+  getRoomInsertProtectionRules
+} from '$lib/server/prompt-builder/modes/roomInsert';
+import { vertexImageService } from '$lib/server/vertex/image';
 
 const MODE_BUILDERS: Record<GenerationMode, (input: CreateGenerationInput) => string> = {
   environment_edit: buildEnvironmentEditPrompt,
@@ -10,40 +31,92 @@ const MODE_BUILDERS: Record<GenerationMode, (input: CreateGenerationInput) => st
   room_insert: buildRoomInsertPrompt
 };
 
+const MODE_LABELS: Record<GenerationMode, string> = {
+  environment_edit: 'Umgebung ändern',
+  material_edit: 'Material ändern',
+  room_insert: 'Raumfoto einsetzen'
+};
+
 const COMMON_SYSTEM_LINES = [
-  'Das Hauptobjekt muss erhalten bleiben.',
-  'Erhalte Perspektive, Maßstab und Konstruktion.',
-  'Füge keine zusätzlichen Möbel ohne ausdrückliche Anweisung hinzu.'
+  'Arbeite kontrolliert und deterministisch für eine plausible Kundenvisualisierung.'
 ];
 
-const MODE_SYSTEM_LINES: Record<GenerationMode, string[]> = {
-  environment_edit: ['Ändere primär die Umgebung.'],
-  material_edit: [
-    'Ändere ausschließlich das Material des Möbels.',
-    'Behalte Form, Konstruktion, Perspektive, Hintergrund und Licht möglichst unverändert.'
-  ],
-  room_insert: [
-    'Setze das Möbel plausibel in die Zielregion ein.',
-    'Passe Licht und Schatten an das Raumfoto an.'
-  ]
+const getModePresetEffects = (input: CreateGenerationInput): PromptPresetEffect[] => {
+  if (input.mode === 'material_edit') {
+    return [];
+  }
+
+  return input.mode === 'room_insert'
+    ? getRoomInsertPresetEffects(input)
+    : getEnvironmentPresetEffects(input);
+};
+
+const getModeProtectionRules = (input: CreateGenerationInput): PromptProtectionRuleDebug[] => {
+  if (input.mode === 'material_edit') {
+    return getMaterialProtectionRules(input);
+  }
+
+  return input.mode === 'room_insert'
+    ? getRoomInsertProtectionRules(input)
+    : getEnvironmentProtectionRules(input);
+};
+
+const getModeParameters = (input: CreateGenerationInput) => {
+  if (input.mode === 'material_edit') {
+    return getMaterialModeParameters(input);
+  }
+
+  return input.mode === 'room_insert'
+    ? getRoomInsertModeParameters(input)
+    : getEnvironmentModeParameters(input);
 };
 
 export class PromptBuilder {
   build(input: CreateGenerationInput) {
     const builder = MODE_BUILDERS[input.mode];
+    const promptText = builder(input);
+    const presetEffects = getModePresetEffects(input);
+    const protectionRules = getModeProtectionRules(input);
+    const modeParameters = getModeParameters(input);
+    const systemPromptText = [...COMMON_SYSTEM_LINES]
+      .concat(
+        protectionRules
+          .filter((rule) => rule.enabled)
+          .map((rule) => rule.appliedFragment)
+          .filter((fragment): fragment is string => Boolean(fragment))
+      )
+      .join('\n');
+    const requestPreview = vertexImageService.prepareRequest(input, promptText);
+    const promptDebug: PromptDebugPreview = {
+      mode: input.mode,
+      modeLabel: MODE_LABELS[input.mode],
+      systemPromptText,
+      promptText,
+      fullPromptText: [systemPromptText, promptText].filter(Boolean).join('\n\n'),
+      presetEffects,
+      protectionRules,
+      modeParameters,
+      requestPreview: {
+        provider: requestPreview.provider,
+        model: requestPreview.model,
+        configured: requestPreview.configured,
+        projectId: input.projectId,
+        sourceImageId: input.sourceImageId,
+        variantsRequested: input.variantsRequested,
+        placement: input.placement,
+        payload: requestPreview.payload
+      }
+    };
 
     return {
       mode: input.mode,
-      promptText: builder(input),
-      systemPromptText: [...COMMON_SYSTEM_LINES, ...MODE_SYSTEM_LINES[input.mode]].join('\n'),
+      promptText,
+      systemPromptText,
+      promptDebug,
       promptFragments: {
-        stylePreset: input.stylePreset,
-        lightPreset: input.lightPreset,
-        instructions: input.instructions,
-        targetMaterial: input.targetMaterial,
-        surfaceDescription: input.surfaceDescription,
-        preserveObject: input.preserveObject,
-        preservePerspective: input.preservePerspective,
+        presetEffects,
+        protectionRules,
+        modeParameters,
         outputGoal: `${input.variantsRequested} Varianten`
       }
     };

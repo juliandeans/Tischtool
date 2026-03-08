@@ -5,6 +5,7 @@
   import Card from '$lib/components/ui/Card.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
+  import type { GenerationProtectionRules } from '$lib/types/generation';
   import type { ImagePlacement } from '$lib/types/image';
   import type { PresetOption } from '$lib/types/preset';
 
@@ -40,10 +41,41 @@
       lightPreset: string;
       variantsRequested: number;
       instructions: string;
+      preserveObject: boolean;
+      preservePerspective: boolean;
+      protectionRules: GenerationProtectionRules;
+    };
+    statechange: {
+      roomImageId: string;
+      furnitureImageId: string;
+      stylePreset: string;
+      lightPreset: string;
+      variantsRequested: number;
+      instructions: string;
+      preserveObject: boolean;
+      preservePerspective: boolean;
+      protectionRules: GenerationProtectionRules;
     };
   }>();
 
   let roomFile: File | null = null;
+
+  const buildPayload = () => ({
+    roomImageId,
+    furnitureImageId,
+    stylePreset,
+    lightPreset,
+    variantsRequested: Number(variantsRequested),
+    instructions: instructions.trim(),
+    preserveObject: true,
+    preservePerspective: true,
+    protectionRules: {
+      preserveObject: true,
+      preservePerspective: true,
+      noExtraFurniture: true,
+      adaptLighting: true
+    }
+  });
 
   const submitUpload = () => {
     if (!roomFile) {
@@ -55,15 +87,10 @@
   };
 
   const submitGenerate = () => {
-    dispatch('generate', {
-      roomImageId,
-      furnitureImageId,
-      stylePreset,
-      lightPreset,
-      variantsRequested: Number(variantsRequested),
-      instructions: instructions.trim()
-    });
+    dispatch('generate', buildPayload());
   };
+
+  $: dispatch('statechange', buildPayload());
 </script>
 
 <div class="stack">
@@ -193,9 +220,12 @@
     margin: 0;
   }
 
+  .stack,
+  form,
   .upload-field {
     display: grid;
     gap: 8px;
+    min-width: 0;
   }
 
   .field-label {
@@ -208,8 +238,11 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-input);
     box-shadow: var(--color-shadow-inset);
+    max-width: 100%;
     min-height: 44px;
+    min-width: 0;
     padding: 10px 14px;
+    width: 100%;
   }
 
   .sidebar-message {

@@ -6,6 +6,7 @@
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
   import ModeTabs from '$lib/components/editor/ModeTabs.svelte';
+  import type { GenerationProtectionRules } from '$lib/types/generation';
   import type { PresetOption } from '$lib/types/preset';
 
   export let styleOptions: PresetOption[] = [];
@@ -34,6 +35,18 @@
     };
     modechange: {
       mode: 'environment_edit' | 'material_edit';
+    };
+    statechange: {
+      mode: 'environment_edit' | 'material_edit';
+      stylePreset: string;
+      lightPreset: string;
+      variantsRequested: number;
+      instructions: string;
+      targetMaterial: string | null;
+      surfaceDescription: string;
+      preserveObject: boolean;
+      preservePerspective: boolean;
+      protectionRules: GenerationProtectionRules;
     };
   }>();
 
@@ -123,9 +136,9 @@
           }
         ];
 
-  const submit = () => {
+  const buildPayload = () => {
     if (mode === 'material_edit') {
-      dispatch('generate', {
+      return {
         mode,
         stylePreset: 'original',
         lightPreset: 'original',
@@ -134,13 +147,12 @@
         targetMaterial,
         surfaceDescription: surfaceDescription.trim(),
         preserveObject: materialRuleState.preserveForm && materialRuleState.preserveConstruction,
-        preservePerspective: materialRuleState.preservePerspective
-      });
-
-      return;
+        preservePerspective: materialRuleState.preservePerspective,
+        protectionRules: materialRuleState
+      };
     }
 
-    dispatch('generate', {
+    return {
       mode,
       stylePreset: environmentStyle,
       lightPreset: environmentLight,
@@ -149,9 +161,16 @@
       targetMaterial: null,
       surfaceDescription: '',
       preserveObject: environmentRuleState.preserveObject,
-      preservePerspective: environmentRuleState.preservePerspective
-    });
+      preservePerspective: environmentRuleState.preservePerspective,
+      protectionRules: environmentRuleState
+    };
   };
+
+  const submit = () => {
+    dispatch('generate', buildPayload());
+  };
+
+  $: dispatch('statechange', buildPayload());
 </script>
 
 <div class="stack">

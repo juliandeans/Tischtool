@@ -12,6 +12,15 @@ import { vertexCostEstimationService } from '$lib/server/vertex/cost-estimation'
 import { vertexImageService } from '$lib/server/vertex/image';
 
 export class GenerationService {
+  previewGeneration(input: CreateGenerationInput) {
+    const normalizedPlacement = roomPlacementService.normalizePlacement(input.placement);
+
+    return promptBuilder.build({
+      ...input,
+      placement: normalizedPlacement
+    }).promptDebug;
+  }
+
   async createGeneration(input: CreateGenerationInput): Promise<PostGenerationResponse> {
     if (!isDatabaseConfigured()) {
       throw new Error('DATABASE_URL is not configured.');
@@ -50,7 +59,6 @@ export class GenerationService {
       ...input,
       placement: normalizedPlacement
     });
-
     const requestSkeleton = vertexImageService.prepareRequest(input, prompt.promptText);
     const estimate = vertexCostEstimationService.estimateVariants(
       input.mode,
@@ -79,6 +87,7 @@ export class GenerationService {
           placement: normalizedPlacement,
           preserveObject: input.preserveObject,
           preservePerspective: input.preservePerspective,
+          protectionRules: input.protectionRules ?? null,
           variantsRequested: input.variantsRequested,
           fakeGeneration: true
         },
@@ -118,7 +127,8 @@ export class GenerationService {
               mode: input.mode,
               systemPromptText: prompt.systemPromptText,
               promptText: prompt.promptText,
-              promptFragments: prompt.promptFragments
+              promptFragments: prompt.promptFragments,
+              promptDebug: prompt.promptDebug
             },
             settingsSnapshot: {
               stylePreset: input.stylePreset,
@@ -129,6 +139,7 @@ export class GenerationService {
               placement: normalizedPlacement,
               preserveObject: input.preserveObject,
               preservePerspective: input.preservePerspective,
+              protectionRules: input.protectionRules ?? null,
               variantsRequested: input.variantsRequested
             }
           })
@@ -169,6 +180,7 @@ export class GenerationService {
           status: 'succeeded',
           variantsReturned: createdImages.length
         },
+        promptDebug: prompt.promptDebug,
         images: createdImages.map((image) => ({
           id: image.id,
           parentImageId: image.parentImageId,

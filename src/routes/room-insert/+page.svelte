@@ -1,13 +1,17 @@
 <script lang="ts">
+  import { browser } from '$app/environment';
   import { goto, invalidateAll } from '$app/navigation';
   import { navigating } from '$app/stores';
 
   import LibraryGrid from '$lib/components/library/LibraryGrid.svelte';
+  import PromptDebugPanel from '$lib/components/ui/PromptDebugPanel.svelte';
   import RoomPlacementCanvas from '$lib/components/room-insert/RoomPlacementCanvas.svelte';
   import RoomInsertSidebar from '$lib/components/room-insert/RoomInsertSidebar.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
+  import type { PostGenerationPreviewResponse, PostGenerationResponse } from '$lib/types/api';
+  import type { PromptDebugPreview } from '$lib/types/generation';
   import type { ImagePlacement } from '$lib/types/image';
 
   export let data;
@@ -27,6 +31,23 @@
   let variantsRequested = '2';
   let instructions = '';
   let placement: ImagePlacement | null = null;
+  let promptPreview: PromptDebugPreview | null = null;
+  let promptPreviewError = '';
+  let promptPreviewLoading = false;
+  let latestPromptDebug: PromptDebugPreview | null = null;
+  let roomInsertState: {
+    roomImageId: string;
+    furnitureImageId: string;
+    stylePreset: string;
+    lightPreset: string;
+    variantsRequested: number;
+    instructions: string;
+    preserveObject: boolean;
+    preservePerspective: boolean;
+    protectionRules: Record<string, boolean>;
+  } | null = null;
+  let promptPreviewTimer: ReturnType<typeof setTimeout> | null = null;
+  let promptPreviewRequestId = 0;
 
   $: projectOptions = [
     { value: '', label: 'Projekt wählen' },
@@ -63,6 +84,76 @@
   $: roomImage = data.images.find((image) => image.id === selectedRoomImageId) ?? null;
   $: furnitureImage = data.images.find((image) => image.id === selectedFurnitureImageId) ?? null;
 
+  const loadPromptPreview = async () => {
+    if (!browser || !roomInsertState || !selectedProjectId || !roomInsertState.furnitureImageId) {
+      promptPreviewLoading = false;
+      return;
+    }
+
+    const requestId = ++promptPreviewRequestId;
+    promptPreviewLoading = true;
+    promptPreviewError = '';
+
+    const response = await fetch('/api/generations/preview', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        projectId: selectedProjectId,
+        sourceImageId: roomInsertState.furnitureImageId,
+        mode: 'room_insert',
+        variantsRequested: roomInsertState.variantsRequested,
+        stylePreset: roomInsertState.stylePreset,
+        lightPreset: roomInsertState.lightPreset,
+        instructions: roomInsertState.instructions,
+        targetMaterial: null,
+        surfaceDescription: '',
+        preserveObject: roomInsertState.preserveObject,
+        preservePerspective: roomInsertState.preservePerspective,
+        protectionRules: roomInsertState.protectionRules,
+        placement: placement
+          ? {
+              roomImageId: roomInsertState.roomImageId,
+              x: placement.x,
+              y: placement.y,
+              width: placement.width,
+              height: placement.height
+            }
+          : null
+      })
+    });
+
+    const payload = (await response.json()) as PostGenerationPreviewResponse & { error?: string };
+
+    if (requestId !== promptPreviewRequestId) {
+      return;
+    }
+
+    promptPreviewLoading = false;
+
+    if (!response.ok) {
+      promptPreviewError = payload.error || 'Prompt-Vorschau konnte nicht geladen werden.';
+      return;
+    }
+
+    promptPreview = payload.promptDebug;
+  };
+
+  $: if (browser && roomInsertState && selectedProjectId && roomInsertState.furnitureImageId) {
+    if (promptPreviewTimer) {
+      clearTimeout(promptPreviewTimer);
+    }
+
+    promptPreviewTimer = setTimeout(() => {
+      void loadPromptPreview();
+    }, 220);
+  } else if (!selectedProjectId || !roomInsertState?.furnitureImageId) {
+    promptPreview = null;
+    promptPreviewError = '';
+    promptPreviewLoading = false;
+  }
+
   const handleProjectChange = async (event: CustomEvent<string>) => {
     const projectId = event.detail;
 
@@ -71,6 +162,9 @@
     uploadError = '';
     uploadSuccess = '';
     placement = null;
+    latestPromptDebug = null;
+    promptPreview = null;
+    promptPreviewError = '';
 
     await goto(projectId ? `/room-insert?projectId=${projectId}` : '/room-insert');
   };
@@ -118,6 +212,9 @@
       lightPreset: string;
       variantsRequested: number;
       instructions: string;
+      preserveObject: boolean;
+      preservePerspective: boolean;
+      protectionRules: Record<string, boolean>;
     }>
   ) => {
     generationError = '';
@@ -145,8 +242,9 @@
         instructions: event.detail.instructions,
         targetMaterial: null,
         surfaceDescription: '',
-        preserveObject: true,
-        preservePerspective: true,
+        preserveObject: event.detail.preserveObject,
+        preservePerspective: event.detail.preservePerspective,
+        protectionRules: event.detail.protectionRules,
         placement: {
           roomImageId: event.detail.roomImageId,
           x: placement.x,
@@ -159,13 +257,15 @@
 
     isGenerating = false;
 
-    const payload = await response.json();
+    const payload = (await response.json()) as PostGenerationResponse & { error?: string };
 
     if (!response.ok) {
       generationError = payload.error || 'Raumvariante konnte nicht generiert werden.';
       return;
     }
 
+    latestPromptDebug = payload.promptDebug;
+    promptPreview = payload.promptDebug;
     generationSuccess = `${payload.images.length} Raumvariante(n) wurden gespeichert.`;
     await invalidateAll();
   };
@@ -215,7 +315,17 @@
         submitting={isGenerating}
         on:generate={handleGenerate}
         on:projectchange={handleProjectChange}
+        on:statechange={(event) => {
+          roomInsertState = event.detail;
+        }}
         on:uploadroom={handleRoomUpload}
+      />
+      <PromptDebugPanel
+        title="Prompt-Vorschau"
+        preview={promptPreview}
+        loading={promptPreviewLoading}
+        error={promptPreviewError}
+        emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle room_insert-Prompt-Vorschau."
       />
     </div>
   {:else}
@@ -233,36 +343,57 @@
           placement = null;
         }}
       />
-      <RoomInsertSidebar
-        bind:projectId={selectedProjectId}
-        bind:roomImageId={selectedRoomImageId}
-        bind:furnitureImageId={selectedFurnitureImageId}
-        bind:stylePreset
-        bind:lightPreset
-        bind:variantsRequested
-        bind:instructions
-        error={generationError}
-        {uploadError}
-        success={generationSuccess}
-        {uploadSuccess}
-        uploadingRoomPhoto={isUploadingRoomPhoto}
-        furnitureImageLabel={furnitureImage?.title ?? ''}
-        {furnitureImageOptions}
-        lightOptions={data.lightOptions}
-        {placement}
-        {projectOptions}
-        roomImageLabel={roomImage?.title ?? ''}
-        {roomImageOptions}
-        styleOptions={data.styleOptions}
-        submitting={isGenerating}
-        on:generate={handleGenerate}
-        on:projectchange={handleProjectChange}
-        on:uploadroom={handleRoomUpload}
-      />
+      <div class="stack">
+        <RoomInsertSidebar
+          bind:projectId={selectedProjectId}
+          bind:roomImageId={selectedRoomImageId}
+          bind:furnitureImageId={selectedFurnitureImageId}
+          bind:stylePreset
+          bind:lightPreset
+          bind:variantsRequested
+          bind:instructions
+          error={generationError}
+          {uploadError}
+          success={generationSuccess}
+          {uploadSuccess}
+          uploadingRoomPhoto={isUploadingRoomPhoto}
+          furnitureImageLabel={furnitureImage?.title ?? ''}
+          {furnitureImageOptions}
+          lightOptions={data.lightOptions}
+          {placement}
+          {projectOptions}
+          roomImageLabel={roomImage?.title ?? ''}
+          {roomImageOptions}
+          styleOptions={data.styleOptions}
+          submitting={isGenerating}
+          on:generate={handleGenerate}
+          on:projectchange={handleProjectChange}
+          on:statechange={(event) => {
+            roomInsertState = event.detail;
+          }}
+          on:uploadroom={handleRoomUpload}
+        />
+        <PromptDebugPanel
+          title="Prompt-Vorschau"
+          preview={promptPreview}
+          loading={promptPreviewLoading}
+          error={promptPreviewError}
+          emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle room_insert-Prompt-Vorschau."
+        />
+      </div>
     </div>
   {/if}
 
   <div class="stack room-insert__extras">
+    {#if latestPromptDebug}
+      <PromptDebugPanel
+        title="Zuletzt gesendeter Prompt"
+        preview={latestPromptDebug}
+        accent="yellow"
+        open={true}
+      />
+    {/if}
+
     {#if data.images.length < 2}
       <Card accent="yellow">
         <p class="room-insert__hint">
@@ -300,7 +431,7 @@
 
 <style>
   .room-insert__workspace {
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+    grid-template-columns: minmax(0, 1fr) 320px;
     padding-right: 1px;
   }
 

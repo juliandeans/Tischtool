@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { browser } from '$app/environment';
   import { invalidateAll } from '$app/navigation';
   import { navigating } from '$app/stores';
 
@@ -7,6 +8,9 @@
   import EditorCanvas from '$lib/components/editor/EditorCanvas.svelte';
   import EditorSidebar from '$lib/components/editor/EditorSidebar.svelte';
   import LibraryGrid from '$lib/components/library/LibraryGrid.svelte';
+  import PromptDebugPanel from '$lib/components/ui/PromptDebugPanel.svelte';
+  import type { PostGenerationPreviewResponse, PostGenerationResponse } from '$lib/types/api';
+  import type { PromptDebugPreview } from '$lib/types/generation';
   import { toShortDate } from '$lib/utils/dates';
 
   export let data;
@@ -15,6 +19,81 @@
   let generationSuccess = '';
   let isGenerating = false;
   let activeMode = data.editorDefaults.mode;
+  let promptPreview: PromptDebugPreview | null = null;
+  let promptPreviewError = '';
+  let promptPreviewLoading = false;
+  let latestPromptDebug: PromptDebugPreview | null = null;
+  let editorState: {
+    mode: 'environment_edit' | 'material_edit';
+    stylePreset: string;
+    lightPreset: string;
+    variantsRequested: number;
+    instructions: string;
+    targetMaterial: string | null;
+    surfaceDescription: string;
+    preserveObject: boolean;
+    preservePerspective: boolean;
+    protectionRules: Record<string, boolean>;
+  } | null = null;
+  let promptPreviewTimer: ReturnType<typeof setTimeout> | null = null;
+  let promptPreviewRequestId = 0;
+
+  const loadPromptPreview = async () => {
+    if (!browser || !editorState) {
+      return;
+    }
+
+    const requestId = ++promptPreviewRequestId;
+    promptPreviewLoading = true;
+    promptPreviewError = '';
+
+    const response = await fetch('/api/generations/preview', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        projectId: data.project.id,
+        sourceImageId: data.image.id,
+        mode: editorState.mode,
+        variantsRequested: editorState.variantsRequested,
+        stylePreset: editorState.stylePreset,
+        lightPreset: editorState.lightPreset,
+        instructions: editorState.instructions,
+        targetMaterial: editorState.targetMaterial,
+        surfaceDescription: editorState.surfaceDescription,
+        preserveObject: editorState.preserveObject,
+        preservePerspective: editorState.preservePerspective,
+        protectionRules: editorState.protectionRules,
+        placement: null
+      })
+    });
+
+    const payload = (await response.json()) as PostGenerationPreviewResponse & { error?: string };
+
+    if (requestId !== promptPreviewRequestId) {
+      return;
+    }
+
+    promptPreviewLoading = false;
+
+    if (!response.ok) {
+      promptPreviewError = payload.error || 'Prompt-Vorschau konnte nicht geladen werden.';
+      return;
+    }
+
+    promptPreview = payload.promptDebug;
+  };
+
+  $: if (browser && editorState) {
+    if (promptPreviewTimer) {
+      clearTimeout(promptPreviewTimer);
+    }
+
+    promptPreviewTimer = setTimeout(() => {
+      void loadPromptPreview();
+    }, 220);
+  }
 
   const handleGenerate = async (event: CustomEvent) => {
     generationError = '';
@@ -38,19 +117,22 @@
         surfaceDescription: event.detail.surfaceDescription,
         preserveObject: event.detail.preserveObject,
         preservePerspective: event.detail.preservePerspective,
+        protectionRules: event.detail.protectionRules,
         placement: null
       })
     });
 
     isGenerating = false;
 
-    const payload = await response.json();
+    const payload = (await response.json()) as PostGenerationResponse & { error?: string };
 
     if (!response.ok) {
       generationError = payload.error || 'Generierung fehlgeschlagen.';
       return;
     }
 
+    latestPromptDebug = payload.promptDebug;
+    promptPreview = payload.promptDebug;
     generationSuccess = `${payload.images.length} ${
       event.detail.mode === 'material_edit' ? 'Material-' : ''
     }Variante(n) wurden als neue Bilder gespeichert.`;
@@ -69,23 +151,35 @@
     width={data.image.width}
     height={data.image.height}
   />
-  <EditorSidebar
-    error={generationError}
-    initialInstructions={data.editorDefaults.instructions}
-    initialLight={data.editorDefaults.lightPreset}
-    initialMode={data.editorDefaults.mode}
-    initialStyle={data.editorDefaults.stylePreset}
-    initialSurfaceDescription={data.editorDefaults.surfaceDescription}
-    initialTargetMaterial={data.editorDefaults.targetMaterial}
-    initialVariants={data.editorDefaults.variantsRequested}
-    submitting={isGenerating}
-    styleOptions={data.styleOptions}
-    lightOptions={data.lightOptions}
-    on:generate={handleGenerate}
-    on:modechange={(event) => {
-      activeMode = event.detail.mode;
-    }}
-  />
+  <div class="stack">
+    <EditorSidebar
+      error={generationError}
+      initialInstructions={data.editorDefaults.instructions}
+      initialLight={data.editorDefaults.lightPreset}
+      initialMode={data.editorDefaults.mode}
+      initialStyle={data.editorDefaults.stylePreset}
+      initialSurfaceDescription={data.editorDefaults.surfaceDescription}
+      initialTargetMaterial={data.editorDefaults.targetMaterial}
+      initialVariants={data.editorDefaults.variantsRequested}
+      submitting={isGenerating}
+      styleOptions={data.styleOptions}
+      lightOptions={data.lightOptions}
+      on:generate={handleGenerate}
+      on:modechange={(event) => {
+        activeMode = event.detail.mode;
+      }}
+      on:statechange={(event) => {
+        editorState = event.detail;
+      }}
+    />
+    <PromptDebugPanel
+      title="Prompt-Vorschau"
+      preview={promptPreview}
+      loading={promptPreviewLoading}
+      error={promptPreviewError}
+      emptyMessage="Die Vorschau erscheint automatisch, sobald die aktuellen Editor-Einstellungen erfasst sind."
+    />
+  </div>
 </div>
 
 <div class="stack editor-page__extras">
@@ -93,6 +187,15 @@
     <Card accent="blue">
       <p class="editor-page__message editor-page__message--success">{generationSuccess}</p>
     </Card>
+  {/if}
+
+  {#if latestPromptDebug}
+    <PromptDebugPanel
+      title="Zuletzt gesendeter Prompt"
+      preview={latestPromptDebug}
+      accent="yellow"
+      open={true}
+    />
   {/if}
 
   <Card accent="yellow">
