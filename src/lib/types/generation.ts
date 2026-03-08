@@ -17,6 +17,8 @@ export type CreateGenerationInput = {
   stylePreset: string;
   lightPreset: string;
   instructions: string;
+  targetMaterial: string | null;
+  surfaceDescription: string;
   preserveObject: boolean;
   preservePerspective: boolean;
   placement: GenerationPlacement;

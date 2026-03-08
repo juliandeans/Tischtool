@@ -7,6 +7,7 @@ import { getDb, isDatabaseConfigured } from '$lib/server/db';
 import { images, projects } from '$lib/server/db/schema';
 import { projectService } from '$lib/server/services/ProjectService';
 import { storage } from '$lib/server/storage';
+import type { GenerationMode } from '$lib/types/generation';
 import type {
   ImageDetail,
   ImageSummary,
@@ -320,6 +321,7 @@ export class ImageService {
   async createGeneratedVariant(input: {
     sourceImageId: string;
     generationId: string;
+    mode: GenerationMode;
     variantIndex: number;
     promptSnapshot: Record<string, unknown>;
     settingsSnapshot: Record<string, unknown>;
@@ -334,21 +336,34 @@ export class ImageService {
     const sourceBytes = await storage.readAsset(sourceImage.filePath);
     const target = await storage.prepareUploadTarget(sourceImage.projectId, imageId);
     const badgeHue = ['#0057B8', '#F2C500', '#E33A2C'][input.variantIndex % 3];
-    const variantLabel = `ENV ${input.variantIndex + 1}`;
+    const modeConfig =
+      input.mode === 'material_edit'
+        ? { label: 'MAT', suffix: 'mat', subtitle: 'Material Fake Flow' }
+        : input.mode === 'room_insert'
+          ? { label: 'ROOM', suffix: 'room', subtitle: 'Room Fake Flow' }
+          : { label: 'ENV', suffix: 'env', subtitle: 'Environment Fake Flow' };
+    const variantLabel = `${modeConfig.label} ${input.variantIndex + 1}`;
     const overlay = Buffer.from(`
       <svg width="1200" height="900" xmlns="http://www.w3.org/2000/svg">
         <rect x="910" y="36" width="240" height="72" rx="18" fill="rgba(255,255,255,0.78)" />
         <rect x="930" y="54" width="18" height="18" rx="9" fill="${badgeHue}" />
         <text x="964" y="70" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#111111">${variantLabel}</text>
-        <text x="964" y="95" font-family="Inter, Arial, sans-serif" font-size="18" fill="#6C6A66">Dev Fake Flow</text>
+        <text x="964" y="95" font-family="Inter, Arial, sans-serif" font-size="18" fill="#6C6A66">${modeConfig.subtitle}</text>
       </svg>
     `);
 
-    const modulationVariants = [
-      { brightness: 1.02, saturation: 1.03 },
-      { brightness: 0.99, saturation: 1.08 },
-      { brightness: 1.01, saturation: 0.96 }
-    ];
+    const modulationVariants =
+      input.mode === 'material_edit'
+        ? [
+            { brightness: 1.01, saturation: 0.94 },
+            { brightness: 0.98, saturation: 1.06 },
+            { brightness: 0.97, saturation: 0.9 }
+          ]
+        : [
+            { brightness: 1.02, saturation: 1.03 },
+            { brightness: 0.99, saturation: 1.08 },
+            { brightness: 1.01, saturation: 0.96 }
+          ];
     const modulation = modulationVariants[input.variantIndex % modulationVariants.length];
 
     const baseImage = sharp(sourceBytes)
@@ -392,7 +407,7 @@ export class ImageService {
         promptSnapshot: input.promptSnapshot,
         settingsSnapshot: {
           ...input.settingsSnapshot,
-          originalFileName: `${originalBaseName}-env-${input.variantIndex + 1}`,
+          originalFileName: `${originalBaseName}-${modeConfig.suffix}-${input.variantIndex + 1}`,
           sourceImageId: sourceImage.id,
           fakeGeneration: true
         }

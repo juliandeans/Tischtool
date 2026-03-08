@@ -1,10 +1,34 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
+
   export let value: 'environment_edit' | 'material_edit' = 'environment_edit';
+
+  const dispatch = createEventDispatcher<{
+    change: 'environment_edit' | 'material_edit';
+  }>();
+
+  const selectMode = (mode: 'environment_edit' | 'material_edit') => {
+    dispatch('change', mode);
+  };
 </script>
 
 <div class="tabs" aria-label="Modus-Auswahl">
-  <button class:active={value === 'environment_edit'} type="button">Environment</button>
-  <button class:active={value === 'material_edit'} type="button" disabled>Material</button>
+  <button
+    class:active={value === 'environment_edit'}
+    aria-pressed={value === 'environment_edit'}
+    type="button"
+    on:click={() => selectMode('environment_edit')}
+  >
+    Environment
+  </button>
+  <button
+    class:active={value === 'material_edit'}
+    aria-pressed={value === 'material_edit'}
+    type="button"
+    on:click={() => selectMode('material_edit')}
+  >
+    Material
+  </button>
 </div>
 
 <style>

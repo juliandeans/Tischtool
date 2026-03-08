@@ -17,8 +17,8 @@ export class GenerationService {
       throw new Error('DATABASE_URL is not configured.');
     }
 
-    if (input.mode !== 'environment_edit') {
-      throw new Error('Only environment_edit is implemented in Phase 4.');
+    if (input.mode === 'room_insert') {
+      throw new Error('room_insert is not implemented yet.');
     }
 
     const normalizedPlacement = roomPlacementService.normalizePlacement(input.placement);
@@ -45,9 +45,7 @@ export class GenerationService {
         sourceImageId: sourceImage.id,
         provider: 'dev-fake',
         model:
-          requestSkeleton.model === 'unconfigured'
-            ? 'environment-edit-fake'
-            : requestSkeleton.model,
+          requestSkeleton.model === 'unconfigured' ? `${input.mode}-fake` : requestSkeleton.model,
         mode: input.mode,
         promptText: prompt.promptText,
         systemPromptText: prompt.systemPromptText,
@@ -55,8 +53,11 @@ export class GenerationService {
           stylePreset: input.stylePreset,
           lightPreset: input.lightPreset,
           instructions: input.instructions,
+          targetMaterial: input.targetMaterial,
+          surfaceDescription: input.surfaceDescription,
           preserveObject: input.preserveObject,
           preservePerspective: input.preservePerspective,
+          variantsRequested: input.variantsRequested,
           fakeGeneration: true
         },
         variantsRequested: input.variantsRequested,
@@ -86,6 +87,7 @@ export class GenerationService {
           imageService.createGeneratedVariant({
             sourceImageId: sourceImage.id,
             generationId: generation.id,
+            mode: input.mode,
             variantIndex: index,
             promptSnapshot: {
               mode: input.mode,
@@ -97,8 +99,11 @@ export class GenerationService {
               stylePreset: input.stylePreset,
               lightPreset: input.lightPreset,
               instructions: input.instructions,
+              targetMaterial: input.targetMaterial,
+              surfaceDescription: input.surfaceDescription,
               preserveObject: input.preserveObject,
-              preservePerspective: input.preservePerspective
+              preservePerspective: input.preservePerspective,
+              variantsRequested: input.variantsRequested
             }
           })
         )

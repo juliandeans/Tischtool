@@ -14,6 +14,7 @@
   let generationError = '';
   let generationSuccess = '';
   let isGenerating = false;
+  let activeMode = data.editorDefaults.mode;
 
   const handleGenerate = async (event: CustomEvent) => {
     generationError = '';
@@ -28,11 +29,13 @@
       body: JSON.stringify({
         projectId: data.project.id,
         sourceImageId: data.image.id,
-        mode: 'environment_edit',
+        mode: event.detail.mode,
         variantsRequested: event.detail.variantsRequested,
         stylePreset: event.detail.stylePreset,
         lightPreset: event.detail.lightPreset,
         instructions: event.detail.instructions,
+        targetMaterial: event.detail.targetMaterial,
+        surfaceDescription: event.detail.surfaceDescription,
         preserveObject: event.detail.preserveObject,
         preservePerspective: event.detail.preservePerspective,
         placement: null
@@ -48,7 +51,9 @@
       return;
     }
 
-    generationSuccess = `${payload.images.length} Variante(n) wurden als neue Bilder gespeichert.`;
+    generationSuccess = `${payload.images.length} ${
+      event.detail.mode === 'material_edit' ? 'Material-' : ''
+    }Variante(n) wurden als neue Bilder gespeichert.`;
     await invalidateAll();
   };
 </script>
@@ -57,8 +62,8 @@
   <span class="eyebrow">Editor</span>
   <h1>Einzelbild-Editor</h1>
   <p>
-    Das aktuelle Bild wird als Ausgangspunkt für `environment_edit` verwendet. Neue Varianten werden
-    nicht destruktiv als Child-Bilder gespeichert.
+    Das aktuelle Bild wird als Ausgangspunkt für `environment_edit` und `material_edit` verwendet.
+    Neue Varianten werden nicht destruktiv als Child-Bilder gespeichert.
   </p>
 </div>
 
@@ -75,10 +80,20 @@
   />
   <EditorSidebar
     error={generationError}
+    initialInstructions={data.editorDefaults.instructions}
+    initialLight={data.editorDefaults.lightPreset}
+    initialMode={data.editorDefaults.mode}
+    initialStyle={data.editorDefaults.stylePreset}
+    initialSurfaceDescription={data.editorDefaults.surfaceDescription}
+    initialTargetMaterial={data.editorDefaults.targetMaterial}
+    initialVariants={data.editorDefaults.variantsRequested}
     submitting={isGenerating}
     styleOptions={data.styleOptions}
     lightOptions={data.lightOptions}
     on:generate={handleGenerate}
+    on:modechange={(event) => {
+      activeMode = event.detail.mode;
+    }}
   />
 </div>
 
@@ -94,6 +109,9 @@
       <div class="cluster">
         <span class="eyebrow">Versionierung</span>
         <span class="muted">Projekt: {data.project.name}</span>
+        <span class="muted"
+          >Modus: {activeMode === 'material_edit' ? 'Material Edit' : 'Environment Edit'}</span
+        >
       </div>
       <div class="cluster">
         {#if data.parentImage}

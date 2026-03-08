@@ -24,8 +24,8 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: 'variantsRequested must be a positive number' }, { status: 400 });
   }
 
-  if (body.mode !== 'environment_edit') {
-    return json({ error: 'Only environment_edit is implemented in Phase 4.' }, { status: 501 });
+  if (body.mode === 'room_insert') {
+    return json({ error: 'room_insert is not implemented in this phase.' }, { status: 501 });
   }
 
   try {
@@ -37,6 +37,8 @@ export const POST: RequestHandler = async ({ request }) => {
       stylePreset: body.stylePreset ?? 'original',
       lightPreset: body.lightPreset ?? 'original',
       instructions: body.instructions ?? '',
+      targetMaterial: typeof body.targetMaterial === 'string' ? body.targetMaterial : null,
+      surfaceDescription: body.surfaceDescription ?? '',
       preserveObject: body.preserveObject ?? true,
       preservePerspective: body.preservePerspective ?? true,
       placement: body.placement ?? null
