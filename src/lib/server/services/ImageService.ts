@@ -549,12 +549,17 @@ export class ImageService {
       .returning({
         id: images.id,
         parentImageId: images.parentImageId,
-        thumbnailPath: images.thumbnailPath
+        filePath: images.filePath,
+        thumbnailPath: images.thumbnailPath,
+        mimeType: images.mimeType
       });
 
     await projectService.touchProject(sourceImage.projectId);
 
-    return image;
+    return {
+      ...image,
+      byteSize: generatedBuffer.length
+    };
   }
 
   async getDownloadDescriptor(id: string, variant: 'original' | 'thumbnail' = 'original') {
@@ -571,7 +576,11 @@ export class ImageService {
     return {
       ...download,
       mimeType: variant === 'thumbnail' ? 'image/png' : image.mimeType,
-      fileName: `${title}.png`
+      fileName: `${title}.png`,
+      debugRunId:
+        typeof image.settingsSnapshot?.debugRunId === 'string'
+          ? image.settingsSnapshot.debugRunId
+          : null
     };
   }
 

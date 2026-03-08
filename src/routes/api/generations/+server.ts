@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 
 import type { PostGenerationRequest, PostGenerationResponse } from '$lib/types/api';
 import { readProviderDebugEnabled, readProviderPreference } from '$lib/server/provider-settings';
+import { createDebugRunId } from '$lib/server/vertex/debug';
 import type { GenerationMode } from '$lib/types/generation';
 import { generationService } from '$lib/server/services/GenerationService';
 
@@ -13,6 +14,7 @@ const readProtectionRules = (value: unknown) =>
   value && typeof value === 'object' ? (value as Record<string, boolean>) : undefined;
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
+  const debugRunId = createDebugRunId();
   const body = (await request.json()) as Partial<PostGenerationRequest>;
 
   if (
@@ -47,7 +49,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       },
       {
         providerPreference: readProviderPreference(cookies),
-        providerDebugEnabled: readProviderDebugEnabled(cookies)
+        providerDebugEnabled: readProviderDebugEnabled(cookies),
+        debugRunId
       }
     );
 
@@ -57,7 +60,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : 'Generation failed.'
+        error: error instanceof Error ? error.message : 'Generation failed.',
+        details: {
+          requestId: debugRunId
+        }
       },
       { status: 500 }
     );

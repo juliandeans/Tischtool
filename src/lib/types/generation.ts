@@ -25,6 +25,7 @@ export type GenerationProtectionRules = Partial<Record<ProtectionRuleKey, boolea
 export type GenerationRuntimeOptions = {
   providerPreference?: 'real' | 'fake';
   providerDebugEnabled?: boolean;
+  debugRunId?: string;
 };
 
 export type CreateGenerationInput = {
@@ -66,6 +67,116 @@ export type PromptInstructionDebug = {
   normalizedLines: string[];
 };
 
+export type ProviderRequestType = 'edit' | 'generate';
+export type ProviderFlow = 'vertex' | 'dev-fake';
+
+export type Base64DebugSummary = {
+  length: number | null;
+  prefix: string | null;
+  suffix: string | null;
+  hasDataUrlPrefix: boolean;
+};
+
+export type BinaryAssetDebug = {
+  label: string;
+  mimeType: string | null;
+  byteLength: number | null;
+  base64: Base64DebugSummary | null;
+  sha256: string | null;
+};
+
+export type ProviderPredictionDebug = {
+  index: number;
+  fieldsPresent: string[];
+  selectedImageField: string | null;
+  mimeType: string | null;
+  base64: Base64DebugSummary | null;
+  decodedByteLength: number | null;
+  sha256: string | null;
+  decodeSucceeded: boolean;
+  decodeError: string | null;
+};
+
+export type ProviderArtifactDebug = {
+  label: string;
+  relativePath: string;
+  mimeType: string | null;
+  byteLength: number | null;
+  sha256: string | null;
+};
+
+export type PersistedImageDebug = {
+  imageId: string;
+  relativeFilePath: string;
+  relativeThumbnailPath: string | null;
+  editorUrl: string;
+  downloadUrl: string;
+  displayedViaDownloadRoute: string;
+  mimeType: string;
+  storedByteLength: number | null;
+  storedSha256: string | null;
+  providerOutputSha256: string | null;
+  providerOutputByteLength: number | null;
+  storedMatchesProvider: boolean | null;
+  displayedOutputSha256: string | null;
+  displayedMatchesStored: boolean | null;
+};
+
+export type ProviderDebugRequest = {
+  runId: string;
+  mode: GenerationMode;
+  provider: string;
+  model: string;
+  configured: boolean;
+  preferredFlow: 'real' | 'fake';
+  plannedFlow: ProviderFlow;
+  fallbackReason: string | null;
+  requestType: ProviderRequestType;
+  requestEndpoint: 'predict' | 'dev-fake';
+  endpointUrl: string | null;
+  negativePromptText: string | null;
+  sourceImageIncluded: boolean;
+  maskIncluded: boolean;
+  targetRegionIncluded: boolean;
+  sampleCount: number;
+  editStrategy: string;
+  modelHint: string | null;
+  sourceImage: BinaryAssetDebug | null;
+  maskImage: BinaryAssetDebug | null;
+  requestBody: Record<string, unknown>;
+  providerParameters: Record<string, unknown>;
+  decisionFlags: Record<string, boolean | number | string | null>;
+};
+
+export type ProviderDebugRun = {
+  runId: string;
+  usedFlow: ProviderFlow;
+  model: string;
+  requestType: ProviderRequestType;
+  requestEndpoint: 'predict' | 'dev-fake';
+  endpointUrl: string | null;
+  sourceImageIncluded: boolean;
+  maskIncluded: boolean;
+  targetRegionIncluded: boolean;
+  sampleCount: number;
+  fakeFallbackUsed: boolean;
+  fallbackReason: string | null;
+  responseStatus: number | null;
+  predictionsCount: number | null;
+  outputMimeTypes: string[];
+  outputByteSizes: number[];
+  totalOutputBytes: number | null;
+  responseMetadata: Record<string, unknown> | null;
+  responseRootKeys: string[];
+  rawResponsePreview: string | null;
+  predictions: ProviderPredictionDebug[];
+  artifacts: ProviderArtifactDebug[];
+  persistedImages: PersistedImageDebug[];
+  editStrategy: string;
+  modelHint: string | null;
+  error: string | null;
+};
+
 export type PromptDebugPreview = {
   mode: GenerationMode;
   modeLabel: string;
@@ -85,6 +196,10 @@ export type PromptDebugPreview = {
     variantsRequested: number;
     placement: GenerationPlacement;
     payload: Record<string, unknown>;
+  };
+  providerDebug: {
+    request: ProviderDebugRequest;
+    run: ProviderDebugRun | null;
   };
 };
 

@@ -13,13 +13,21 @@ export type VertexConfiguration = {
 };
 
 export class VertexClient {
+  normalizeModelId(model: string) {
+    return model
+      .trim()
+      .replace(/^publishers\/google\/models\//, '')
+      .replace(/^google\//, '')
+      .replace(/^models\//, '');
+  }
+
   getConfiguration(): VertexConfiguration {
     const config = getVertexRuntimeConfig();
 
     return {
       projectId: config.projectId,
       location: config.location,
-      model: config.model,
+      model: this.normalizeModelId(config.model),
       credentialsPath: config.credentialsPath,
       configured: config.configured
     };
@@ -37,8 +45,9 @@ export class VertexClient {
 
   getPredictUrl(model = this.getConfiguration().model) {
     const config = this.getConfiguration();
+    const normalizedModel = this.normalizeModelId(model);
 
-    return `https://${config.location}-aiplatform.googleapis.com/v1/projects/${config.projectId}/locations/${config.location}/publishers/google/models/${model}:predict`;
+    return `https://${config.location}-aiplatform.googleapis.com/v1/projects/${config.projectId}/locations/${config.location}/publishers/google/models/${normalizedModel}:predict`;
   }
 
   async getAccessToken() {

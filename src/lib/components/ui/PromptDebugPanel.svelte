@@ -10,6 +10,26 @@
     'Sobald die Eingaben vollständig sind, erscheint hier die Prompt-Vorschau.';
   export let accent: 'none' | 'blue' | 'yellow' | 'red' = 'blue';
   export let open = false;
+
+  const formatBase64Summary = (
+    value:
+      | {
+          length: number | null;
+          prefix: string | null;
+          suffix: string | null;
+          hasDataUrlPrefix: boolean;
+        }
+      | null
+      | undefined
+  ) => {
+    if (!value || value.length === null) {
+      return 'keine Angabe';
+    }
+
+    return `${value.length} Zeichen · ${value.prefix ?? '—'} … ${value.suffix ?? '—'}${
+      value.hasDataUrlPrefix ? ' · data:-Prefix erkannt' : ''
+    }`;
+  };
 </script>
 
 <Card {accent} padded={false}>
@@ -158,6 +178,321 @@
                   keine
                 {/if}
               </strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="prompt-debug__section">
+          <strong>Provider-Debug</strong>
+          <div class="prompt-debug__list">
+            <div class="prompt-debug__item">
+              <div class="prompt-debug__item-head">
+                <span>Geplanter Request</span>
+                <span class="prompt-debug__badge">
+                  {preview.providerDebug.request.plannedFlow}
+                </span>
+              </div>
+              <div class="prompt-debug__meta-grid">
+                <div class="prompt-debug__meta-item">
+                  <span class="muted">Modus</span>
+                  <strong>{preview.providerDebug.request.mode}</strong>
+                </div>
+                <div class="prompt-debug__meta-item">
+                  <span class="muted">Modell</span>
+                  <strong>{preview.providerDebug.request.model}</strong>
+                </div>
+                <div class="prompt-debug__meta-item">
+                  <span class="muted">Typ</span>
+                  <strong>{preview.providerDebug.request.requestType}</strong>
+                </div>
+                <div class="prompt-debug__meta-item">
+                  <span class="muted">Endpoint</span>
+                  <strong>{preview.providerDebug.request.requestEndpoint}</strong>
+                </div>
+                <div class="prompt-debug__meta-item prompt-debug__meta-item--wide">
+                  <span class="muted">Run-ID</span>
+                  <strong>{preview.providerDebug.request.runId}</strong>
+                </div>
+                <div class="prompt-debug__meta-item prompt-debug__meta-item--wide">
+                  <span class="muted">Endpoint-URL</span>
+                  <strong>{preview.providerDebug.request.endpointUrl ?? 'keine'}</strong>
+                </div>
+                <div class="prompt-debug__meta-item">
+                  <span class="muted">Quellbild an Provider</span>
+                  <strong
+                    >{preview.providerDebug.request.sourceImageIncluded ? 'ja' : 'nein'}</strong
+                  >
+                </div>
+                <div class="prompt-debug__meta-item">
+                  <span class="muted">Maske / Zielregion</span>
+                  <strong>
+                    {preview.providerDebug.request.maskIncluded ? 'Maske' : 'keine Maske'}
+                    {#if preview.providerDebug.request.targetRegionIncluded}
+                      {' · Zielregion'}
+                    {/if}
+                  </strong>
+                </div>
+                <div class="prompt-debug__meta-item">
+                  <span class="muted">Varianten</span>
+                  <strong>{preview.providerDebug.request.sampleCount}</strong>
+                </div>
+                <div class="prompt-debug__meta-item prompt-debug__meta-item--wide">
+                  <span class="muted">Edit-Strategie</span>
+                  <strong>{preview.providerDebug.request.editStrategy}</strong>
+                </div>
+                <div class="prompt-debug__meta-item prompt-debug__meta-item--wide">
+                  <span class="muted">Negative Prompt</span>
+                  <strong>{preview.providerDebug.request.negativePromptText ?? 'keiner'}</strong>
+                </div>
+              </div>
+              <div class="prompt-debug__list">
+                <div class="prompt-debug__item">
+                  <div class="prompt-debug__item-head">
+                    <span>Quellbild-Transfer</span>
+                  </div>
+                  <p>
+                    MIME: {preview.providerDebug.request.sourceImage?.mimeType ?? 'keine Angabe'}
+                    · Bytes: {preview.providerDebug.request.sourceImage?.byteLength ?? 'keine'} · SHA-256:
+                    {preview.providerDebug.request.sourceImage?.sha256 ?? 'keine'}
+                  </p>
+                  <p>
+                    Base64: {formatBase64Summary(preview.providerDebug.request.sourceImage?.base64)}
+                  </p>
+                </div>
+                <div class="prompt-debug__item">
+                  <div class="prompt-debug__item-head">
+                    <span>Masken-Transfer</span>
+                  </div>
+                  <p>
+                    {#if preview.providerDebug.request.maskImage}
+                      MIME: {preview.providerDebug.request.maskImage.mimeType ?? 'keine Angabe'} · Bytes:
+                      {preview.providerDebug.request.maskImage.byteLength ?? 'keine'} · SHA-256: {preview
+                        .providerDebug.request.maskImage.sha256 ?? 'keine'}
+                    {:else}
+                      Keine Maske im Request.
+                    {/if}
+                  </p>
+                  {#if preview.providerDebug.request.maskImage}
+                    <p>
+                      Base64:
+                      {formatBase64Summary(preview.providerDebug.request.maskImage.base64)}
+                    </p>
+                  {/if}
+                </div>
+              </div>
+              {#if preview.providerDebug.request.fallbackReason}
+                <p>Geplanter Fallback-Grund: {preview.providerDebug.request.fallbackReason}</p>
+              {/if}
+              {#if preview.providerDebug.request.modelHint}
+                <p>Modell-Hinweis: {preview.providerDebug.request.modelHint}</p>
+              {/if}
+              <pre class="prompt-debug__code">{JSON.stringify(
+                  preview.providerDebug.request.requestBody,
+                  null,
+                  2
+                )}</pre>
+            </div>
+
+            <div class="prompt-debug__item">
+              <div class="prompt-debug__item-head">
+                <span>Letzter Run</span>
+                <span
+                  class:prompt-debug__badge={true}
+                  class:prompt-debug__badge--muted={!preview.providerDebug.run}
+                >
+                  {preview.providerDebug.run ? preview.providerDebug.run.usedFlow : 'noch keiner'}
+                </span>
+              </div>
+
+              {#if preview.providerDebug.run}
+                <div class="prompt-debug__meta-grid">
+                  <div class="prompt-debug__meta-item">
+                    <span class="muted">Run-ID</span>
+                    <strong>{preview.providerDebug.run.runId}</strong>
+                  </div>
+                  <div class="prompt-debug__meta-item">
+                    <span class="muted">Tatsaechlicher Flow</span>
+                    <strong>{preview.providerDebug.run.usedFlow}</strong>
+                  </div>
+                  <div class="prompt-debug__meta-item">
+                    <span class="muted">Modell</span>
+                    <strong>{preview.providerDebug.run.model}</strong>
+                  </div>
+                  <div class="prompt-debug__meta-item">
+                    <span class="muted">Request-Typ</span>
+                    <strong>{preview.providerDebug.run.requestType}</strong>
+                  </div>
+                  <div class="prompt-debug__meta-item">
+                    <span class="muted">Endpoint</span>
+                    <strong>{preview.providerDebug.run.requestEndpoint}</strong>
+                  </div>
+                  <div class="prompt-debug__meta-item prompt-debug__meta-item--wide">
+                    <span class="muted">Endpoint-URL</span>
+                    <strong>{preview.providerDebug.run.endpointUrl ?? 'keine Angabe'}</strong>
+                  </div>
+                  <div class="prompt-debug__meta-item">
+                    <span class="muted">Quellbild an Provider</span>
+                    <strong>{preview.providerDebug.run.sourceImageIncluded ? 'ja' : 'nein'}</strong>
+                  </div>
+                  <div class="prompt-debug__meta-item">
+                    <span class="muted">Maske / Zielregion</span>
+                    <strong>
+                      {preview.providerDebug.run.maskIncluded ? 'Maske' : 'keine Maske'}
+                      {#if preview.providerDebug.run.targetRegionIncluded}
+                        {' · Zielregion'}
+                      {/if}
+                    </strong>
+                  </div>
+                  <div class="prompt-debug__meta-item">
+                    <span class="muted">Predictions</span>
+                    <strong>{preview.providerDebug.run.predictionsCount ?? 'keine Angabe'}</strong>
+                  </div>
+                  <div class="prompt-debug__meta-item">
+                    <span class="muted">Output-Bytes gesamt</span>
+                    <strong>{preview.providerDebug.run.totalOutputBytes ?? 'keine Angabe'}</strong>
+                  </div>
+                  <div class="prompt-debug__meta-item prompt-debug__meta-item--wide">
+                    <span class="muted">Response-Root-Keys</span>
+                    <strong>
+                      {#if preview.providerDebug.run.responseRootKeys.length}
+                        {preview.providerDebug.run.responseRootKeys.join(', ')}
+                      {:else}
+                        keine Angabe
+                      {/if}
+                    </strong>
+                  </div>
+                  <div class="prompt-debug__meta-item prompt-debug__meta-item--wide">
+                    <span class="muted">Output-MIME-Types</span>
+                    <strong>
+                      {#if preview.providerDebug.run.outputMimeTypes.length}
+                        {preview.providerDebug.run.outputMimeTypes.join(', ')}
+                      {:else}
+                        keine Angabe
+                      {/if}
+                    </strong>
+                  </div>
+                  <div class="prompt-debug__meta-item prompt-debug__meta-item--wide">
+                    <span class="muted">Output-Bytegroessen</span>
+                    <strong>
+                      {#if preview.providerDebug.run.outputByteSizes.length}
+                        {preview.providerDebug.run.outputByteSizes.join(', ')}
+                      {:else}
+                        keine Angabe
+                      {/if}
+                    </strong>
+                  </div>
+                </div>
+
+                {#if preview.providerDebug.run.fakeFallbackUsed}
+                  <p>
+                    Fake-Fallback: {preview.providerDebug.run.fallbackReason ?? 'ohne Grundangabe'}
+                  </p>
+                {/if}
+                {#if preview.providerDebug.run.modelHint}
+                  <p>Modell-Hinweis: {preview.providerDebug.run.modelHint}</p>
+                {/if}
+                {#if preview.providerDebug.run.error}
+                  <p>Provider-Fehler: {preview.providerDebug.run.error}</p>
+                {/if}
+                {#if preview.providerDebug.run.rawResponsePreview}
+                  <pre class="prompt-debug__code">{preview.providerDebug.run
+                      .rawResponsePreview}</pre>
+                {/if}
+                {#if preview.providerDebug.run.predictions.length}
+                  <div class="prompt-debug__list">
+                    {#each preview.providerDebug.run.predictions as prediction}
+                      <div class="prompt-debug__item">
+                        <div class="prompt-debug__item-head">
+                          <span>Prediction #{prediction.index + 1}</span>
+                          <span
+                            class:prompt-debug__badge={true}
+                            class:prompt-debug__badge--muted={!prediction.decodeSucceeded}
+                          >
+                            {prediction.decodeSucceeded ? 'decoded' : 'fehler'}
+                          </span>
+                        </div>
+                        <p>
+                          Felder: {prediction.fieldsPresent.join(', ')} · Bildfeld:
+                          {prediction.selectedImageField ?? 'keins'} · MIME:
+                          {prediction.mimeType ?? 'keine Angabe'}
+                        </p>
+                        <p>Base64: {formatBase64Summary(prediction.base64)}</p>
+                        <p>
+                          Decoded Bytes: {prediction.decodedByteLength ?? 'keine'} · SHA-256:
+                          {prediction.sha256 ?? 'keine'}
+                        </p>
+                        {#if prediction.decodeError}
+                          <p>Decode-Fehler: {prediction.decodeError}</p>
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+                {#if preview.providerDebug.run.persistedImages.length}
+                  <div class="prompt-debug__section">
+                    <strong>Speicherung und Anzeige</strong>
+                    <div class="prompt-debug__list">
+                      {#each preview.providerDebug.run.persistedImages as image}
+                        <div class="prompt-debug__item">
+                          <div class="prompt-debug__item-head">
+                            <span>Bild {image.imageId}</span>
+                            <span class="prompt-debug__badge">
+                              {image.storedMatchesProvider === true
+                                ? 'Provider = gespeichert'
+                                : image.storedMatchesProvider === false
+                                  ? 'Hash-Abweichung'
+                                  : 'kein Providervergleich'}
+                            </span>
+                          </div>
+                          <p>Datei: {image.relativeFilePath}</p>
+                          <p>Thumbnail: {image.relativeThumbnailPath ?? 'keins'}</p>
+                          <p>
+                            Editor: {image.editorUrl} · Anzeige:
+                            {image.displayedViaDownloadRoute}
+                          </p>
+                          <p>
+                            Download: {image.downloadUrl} · MIME: {image.mimeType} · Bytes:
+                            {image.storedByteLength ?? 'keine'}
+                          </p>
+                          <p>
+                            Provider SHA-256: {image.providerOutputSha256 ?? 'keine'} · Stored SHA-256:
+                            {image.storedSha256 ?? 'keine'} · Displayed SHA-256:
+                            {image.displayedOutputSha256 ?? 'keine'}
+                          </p>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
+                {#if preview.providerDebug.run.artifacts.length}
+                  <div class="prompt-debug__section">
+                    <strong>Debug-Artefakte</strong>
+                    <div class="prompt-debug__list">
+                      {#each preview.providerDebug.run.artifacts as artifact}
+                        <div class="prompt-debug__item">
+                          <div class="prompt-debug__item-head">
+                            <span>{artifact.label}</span>
+                          </div>
+                          <p>
+                            {artifact.relativePath} · MIME: {artifact.mimeType ?? 'keine'} · Bytes:
+                            {artifact.byteLength ?? 'keine'} · SHA-256:
+                            {artifact.sha256 ?? 'keine'}
+                          </p>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
+                {#if preview.providerDebug.run.responseMetadata}
+                  <pre class="prompt-debug__code">{JSON.stringify(
+                      preview.providerDebug.run.responseMetadata,
+                      null,
+                      2
+                    )}</pre>
+                {/if}
+              {:else}
+                <p>Nach einer Generierung erscheinen hier Flow-, Response- und Fallback-Details.</p>
+              {/if}
             </div>
           </div>
         </div>

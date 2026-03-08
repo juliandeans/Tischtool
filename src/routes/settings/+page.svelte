@@ -47,8 +47,8 @@
       <div class="section-head">
         <h2>Betriebsmodus</h2>
         <p>
-          Hier schaltest du zwischen Test-/Fallback-Betrieb und echtem Google-Vertex-Betrieb um.
-          Die Einstellung gilt für diesen Browser.
+          Hier schaltest du zwischen Test-/Fallback-Betrieb und echtem Google-Vertex-Betrieb um. Die
+          Einstellung gilt für diesen Browser.
         </p>
       </div>
 

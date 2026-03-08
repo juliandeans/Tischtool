@@ -106,6 +106,10 @@ export class PromptBuilder {
         variantsRequested: input.variantsRequested,
         placement: input.placement,
         payload: requestPreview.payload
+      },
+      providerDebug: {
+        request: requestPreview.providerDebug,
+        run: null
       }
     };
 

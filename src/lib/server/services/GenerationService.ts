@@ -7,8 +7,14 @@ import { imageService } from '$lib/server/services/ImageService';
 import { roomPlacementService } from '$lib/server/services/RoomPlacementService';
 import { storage } from '$lib/server/storage';
 import type { PostGenerationResponse } from '$lib/types/api';
-import type { CreateGenerationInput, GenerationRuntimeOptions } from '$lib/types/generation';
+import type {
+  CreateGenerationInput,
+  GenerationRuntimeOptions,
+  ProviderDebugRequest,
+  ProviderDebugRun
+} from '$lib/types/generation';
 import { vertexCostEstimationService } from '$lib/server/vertex/cost-estimation';
+import { createDebugRunId, createVertexDebugLogger, sha256Hex } from '$lib/server/vertex/debug';
 import {
   VertexProviderError,
   type VertexGenerationResult,
@@ -24,6 +30,7 @@ type GenerationExecutionResult = {
   model: string;
   images: PersistedImage[];
   usageJson: Record<string, unknown>;
+  providerDebugRun: ProviderDebugRun;
 };
 
 export class GenerationService {
@@ -47,8 +54,14 @@ export class GenerationService {
       throw new Error('DATABASE_URL is not configured.');
     }
 
+    const debugRunId = runtimeOptions?.debugRunId ?? createDebugRunId();
+    const debugLogger = createVertexDebugLogger(debugRunId, true);
     const normalizedPlacement = roomPlacementService.normalizePlacement(input.placement);
     const sourceImage = await imageService.getImage(input.sourceImageId);
+    const runtimeOptionsWithDebug = {
+      ...runtimeOptions,
+      debugRunId
+    } satisfies GenerationRuntimeOptions;
 
     if (sourceImage.projectId !== input.projectId) {
       throw new Error('Source image does not belong to the provided project.');
@@ -81,12 +94,12 @@ export class GenerationService {
         ...input,
         placement: normalizedPlacement
       },
-      runtimeOptions
+      runtimeOptionsWithDebug
     );
     const executionPlan = vertexImageService.getExecutionPlan(
       input.mode,
       input.variantsRequested,
-      runtimeOptions
+      runtimeOptionsWithDebug
     );
     const requestSkeleton = vertexImageService.prepareRequest(
       {
@@ -94,13 +107,63 @@ export class GenerationService {
         placement: normalizedPlacement
       },
       prompt.promptText,
-      runtimeOptions
+      runtimeOptionsWithDebug
     );
     const estimate = vertexCostEstimationService.estimateVariants(
       input.mode,
       input.variantsRequested
     );
     const db = getDb();
+
+    debugLogger.log('generation-entry', {
+      runId: debugRunId,
+      projectId: input.projectId,
+      sourceImageId: input.sourceImageId,
+      generationMode: input.mode,
+      requestType: requestSkeleton.providerDebug.requestType,
+      sourceImagePresent: true,
+      sourceImageMimeType: sourceImage.mimeType,
+      sourceImagePath: sourceImage.filePath,
+      maskPresent: false,
+      sampleCount: requestSkeleton.providerDebug.sampleCount,
+      providerParameters: requestSkeleton.providerDebug.providerParameters,
+      plannedFlow: requestSkeleton.providerDebug.plannedFlow
+    });
+
+    await debugLogger.writeJson('generation-entry', {
+      runId: debugRunId,
+      input: {
+        ...input,
+        placement: normalizedPlacement
+      },
+      sourceImage: {
+        id: sourceImage.id,
+        filePath: sourceImage.filePath,
+        mimeType: sourceImage.mimeType,
+        width: sourceImage.width,
+        height: sourceImage.height
+      }
+    });
+
+    await debugLogger.writeJson('prompt-builder', {
+      runId: debugRunId,
+      promptInput: {
+        mode: input.mode,
+        stylePreset: input.stylePreset,
+        lightPreset: input.lightPreset,
+        instructions: input.instructions,
+        targetMaterial: input.targetMaterial,
+        surfaceDescription: input.surfaceDescription,
+        preserveObject: input.preserveObject,
+        preservePerspective: input.preservePerspective,
+        protectionRules: input.protectionRules ?? null,
+        placement: normalizedPlacement
+      },
+      finalPrompt: prompt.promptText,
+      negativePrompt: null,
+      instructionDebug: prompt.promptDebug.instructionDebug,
+      decisionFlags: requestSkeleton.providerDebug.decisionFlags
+    });
 
     const [generation] = await db
       .insert(generations)
@@ -124,10 +187,11 @@ export class GenerationService {
           preservePerspective: input.preservePerspective,
           protectionRules: input.protectionRules ?? null,
           variantsRequested: input.variantsRequested,
+          debugRunId,
           requestedProvider: executionPlan.useVertex ? 'vertex' : 'dev-fake',
           vertexFallbackReason: executionPlan.reason,
-          providerPreference: runtimeOptions?.providerPreference ?? 'real',
-          providerDebugEnabled: runtimeOptions?.providerDebugEnabled ?? false,
+          providerPreference: runtimeOptionsWithDebug.providerPreference ?? 'real',
+          providerDebugEnabled: runtimeOptionsWithDebug.providerDebugEnabled ?? false,
           // Real Vertex is only enabled for environment_edit in this phase.
           realVertexEligible: executionPlan.useVertex
         },
@@ -138,8 +202,13 @@ export class GenerationService {
           requestConfiguredForVertex: requestSkeleton.configured,
           estimatedCost: estimate.estimatedCost,
           unitPrice: estimate.unitPrice,
+          debugRunId,
           vertexRequested: executionPlan.useVertex,
-          vertexFallbackReason: executionPlan.reason
+          vertexFallbackReason: executionPlan.reason,
+          providerDebug: {
+            request: requestSkeleton.providerDebug,
+            run: null
+          }
         },
         estimatedCost: String(estimate.estimatedCost),
         actualCost: '0',
@@ -165,7 +234,8 @@ export class GenerationService {
               placement: normalizedPlacement
             },
             prompt,
-            sourceImagePath: sourceImage.filePath
+            sourceImage,
+            runtimeOptions: runtimeOptionsWithDebug
           })
         : await this.executeFakeGeneration({
             generationId: generation.id,
@@ -175,7 +245,8 @@ export class GenerationService {
             },
             prompt,
             fallbackReason: executionPlan.reason,
-            vertexAttempted: false
+            vertexAttempted: false,
+            runtimeOptions: runtimeOptionsWithDebug
           });
 
       const actualCost = Number((executionResult.images.length * estimate.unitPrice).toFixed(4));
@@ -215,7 +286,13 @@ export class GenerationService {
           status: 'succeeded',
           variantsReturned: executionResult.images.length
         },
-        promptDebug: prompt.promptDebug,
+        promptDebug: {
+          ...prompt.promptDebug,
+          providerDebug: {
+            request: prompt.promptDebug.providerDebug.request,
+            run: executionResult.providerDebugRun
+          }
+        },
         images: executionResult.images.map((image) => ({
           id: image.id,
           parentImageId: image.parentImageId,
@@ -229,10 +306,20 @@ export class GenerationService {
           status: 'failed',
           usageJson: {
             fakeGeneration: !executionPlan.useVertex,
-            error: error instanceof Error ? error.message : 'unknown error'
+            debugRunId,
+            error: error instanceof Error ? error.message : 'unknown error',
+            providerDebug: {
+              request: requestSkeleton.providerDebug,
+              run: null
+            }
           }
         })
         .where(eq(generations.id, generation.id));
+
+      debugLogger.log('generation-failed', {
+        runId: debugRunId,
+        error: error instanceof Error ? error.message : 'unknown error'
+      });
 
       throw error;
     }
@@ -242,21 +329,25 @@ export class GenerationService {
     generationId: string;
     input: CreateGenerationInput;
     prompt: PromptBuildResult;
-    sourceImagePath: string;
+    sourceImage: Awaited<ReturnType<typeof imageService.getImage>>;
+    runtimeOptions: GenerationRuntimeOptions;
   }): Promise<GenerationExecutionResult> {
     try {
-      const sourceImageBytes = await storage.readAsset(options.sourceImagePath);
+      const sourceImageBytes = await storage.readAsset(options.sourceImage.filePath);
       const providerResult = await vertexImageService.generateEnvironmentEdit(
         options.input,
         options.prompt.promptText,
-        sourceImageBytes
+        sourceImageBytes,
+        options.runtimeOptions,
+        options.sourceImage.mimeType
       );
 
       return await this.persistVertexResult({
         generationId: options.generationId,
         input: options.input,
         prompt: options.prompt,
-        providerResult
+        providerResult,
+        runtimeOptions: options.runtimeOptions
       });
     } catch (error) {
       // Vertex failures fall back to the existing fake flow so the editor remains usable in dev.
@@ -269,7 +360,8 @@ export class GenerationService {
         prompt: options.prompt,
         fallbackReason,
         vertexAttempted: true,
-        vertexError: error
+        vertexError: error,
+        runtimeOptions: options.runtimeOptions
       });
     }
   }
@@ -279,6 +371,7 @@ export class GenerationService {
     input: CreateGenerationInput;
     prompt: PromptBuildResult;
     providerResult: VertexGenerationResult;
+    runtimeOptions: GenerationRuntimeOptions;
   }): Promise<GenerationExecutionResult> {
     const createdImages = await Promise.all(
       options.providerResult.images.map((image, index) =>
@@ -296,6 +389,7 @@ export class GenerationService {
             promptDebug: options.prompt.promptDebug
           },
           settingsSnapshot: {
+            debugRunId: options.runtimeOptions.debugRunId,
             stylePreset: options.input.stylePreset,
             lightPreset: options.input.lightPreset,
             instructions: options.input.instructions,
@@ -315,6 +409,23 @@ export class GenerationService {
         })
       )
     );
+    const persistedImages = await this.collectPersistedImageDebug({
+      runId: options.providerResult.providerDebug.runId,
+      images: createdImages,
+      providerImages: options.providerResult.images,
+      providerDebugEnabled: true
+    });
+
+    options.providerResult.providerDebug.persistedImages = persistedImages.debugEntries;
+    options.providerResult.providerDebug.artifacts.push(...persistedImages.artifacts);
+
+    createVertexDebugLogger(options.providerResult.providerDebug.runId, true).log(
+      'storage-persistence',
+      {
+        runId: options.providerResult.providerDebug.runId,
+        persistedImages: persistedImages.debugEntries
+      }
+    );
 
     return {
       provider: 'vertex',
@@ -324,8 +435,13 @@ export class GenerationService {
         ...options.providerResult.usage,
         fakeGeneration: false,
         vertexAttempted: true,
-        vertexFallbackUsed: false
-      }
+        vertexFallbackUsed: false,
+        providerDebug: {
+          request: options.prompt.promptDebug.providerDebug.request,
+          run: options.providerResult.providerDebug
+        }
+      },
+      providerDebugRun: options.providerResult.providerDebug
     };
   }
 
@@ -336,6 +452,7 @@ export class GenerationService {
     fallbackReason: string | null;
     vertexAttempted: boolean;
     vertexError?: unknown;
+    runtimeOptions: GenerationRuntimeOptions;
   }): Promise<GenerationExecutionResult> {
     const createdImages = await Promise.all(
       Array.from({ length: options.input.variantsRequested }, (_, index) =>
@@ -353,6 +470,7 @@ export class GenerationService {
             promptDebug: options.prompt.promptDebug
           },
           settingsSnapshot: {
+            debugRunId: options.runtimeOptions.debugRunId,
             stylePreset: options.input.stylePreset,
             lightPreset: options.input.lightPreset,
             instructions: options.input.instructions,
@@ -368,6 +486,20 @@ export class GenerationService {
         })
       )
     );
+    const providerDebugRun = this.createFakeProviderDebugRun(
+      options.prompt.promptDebug.providerDebug.request,
+      createdImages,
+      options.fallbackReason,
+      options.vertexError
+    );
+    const persistedImages = await this.collectPersistedImageDebug({
+      runId: providerDebugRun.runId,
+      images: createdImages,
+      providerImages: null,
+      providerDebugEnabled: true
+    });
+    providerDebugRun.persistedImages = persistedImages.debugEntries;
+    providerDebugRun.artifacts.push(...persistedImages.artifacts);
 
     return {
       provider: 'dev-fake',
@@ -378,9 +510,135 @@ export class GenerationService {
         vertexAttempted: options.vertexAttempted,
         vertexFallbackUsed: true,
         vertexFallbackReason: options.fallbackReason,
-        vertexError: options.vertexError instanceof Error ? options.vertexError.message : null
-      }
+        vertexError: options.vertexError instanceof Error ? options.vertexError.message : null,
+        providerDebug: {
+          request: options.prompt.promptDebug.providerDebug.request,
+          run: providerDebugRun
+        }
+      },
+      providerDebugRun
     };
+  }
+
+  private createFakeProviderDebugRun(
+    request: ProviderDebugRequest,
+    images: PersistedImage[],
+    fallbackReason: string | null,
+    error?: unknown
+  ): ProviderDebugRun {
+    const outputMimeTypes = images.map(() => 'image/png');
+    const outputByteSizes = images
+      .map((image) => (typeof image.byteSize === 'number' ? image.byteSize : null))
+      .filter((size): size is number => size !== null);
+
+    return {
+      runId: request.runId,
+      usedFlow: 'dev-fake',
+      model: `${request.mode}-fake`,
+      requestType: request.requestType,
+      requestEndpoint: 'dev-fake',
+      endpointUrl: request.endpointUrl,
+      sourceImageIncluded: request.sourceImageIncluded,
+      maskIncluded: request.maskIncluded,
+      targetRegionIncluded: request.targetRegionIncluded,
+      sampleCount: request.sampleCount,
+      fakeFallbackUsed: true,
+      fallbackReason,
+      responseStatus: null,
+      predictionsCount: images.length,
+      outputMimeTypes,
+      outputByteSizes,
+      totalOutputBytes: outputByteSizes.length
+        ? outputByteSizes.reduce((sum, size) => sum + size, 0)
+        : null,
+      responseMetadata: null,
+      responseRootKeys: [],
+      rawResponsePreview: null,
+      predictions: [],
+      artifacts: [],
+      persistedImages: [],
+      editStrategy: request.editStrategy,
+      modelHint: request.modelHint,
+      error: error instanceof Error ? error.message : null
+    };
+  }
+
+  private async collectPersistedImageDebug(options: {
+    runId: string;
+    images: PersistedImage[];
+    providerImages: VertexGenerationResult['images'] | null;
+    providerDebugEnabled: boolean;
+  }) {
+    const debugLogger = createVertexDebugLogger(options.runId, options.providerDebugEnabled);
+    const artifacts = (
+      await Promise.all(
+        options.images.flatMap((image, index) => [
+          this.createStoredAssetArtifact(debugLogger, {
+            label: `stored-output-${index + 1}`,
+            filePath: image.filePath,
+            mimeType: image.mimeType
+          }),
+          this.createStoredAssetArtifact(debugLogger, {
+            label: `displayed-output-${index + 1}`,
+            filePath: image.filePath,
+            mimeType: image.mimeType
+          })
+        ])
+      )
+    ).filter((artifact): artifact is NonNullable<typeof artifact> => artifact !== null);
+
+    const debugEntries = await Promise.all(
+      options.images.map(async (image, index) => {
+        const storedBytes = await storage.readAsset(image.filePath);
+        const storedSha256 = sha256Hex(storedBytes);
+        const providerOutput = options.providerImages?.[index] ?? null;
+        const providerOutputSha256 = providerOutput ? sha256Hex(providerOutput.bytes) : null;
+        const providerOutputByteLength = providerOutput ? providerOutput.bytes.byteLength : null;
+
+        return {
+          imageId: image.id,
+          relativeFilePath: image.filePath,
+          relativeThumbnailPath: image.thumbnailPath,
+          editorUrl: `/editor/${image.id}`,
+          downloadUrl: `/api/images/${image.id}/download?download=1`,
+          displayedViaDownloadRoute: `/api/images/${image.id}/download`,
+          mimeType: image.mimeType,
+          storedByteLength: storedBytes.byteLength,
+          storedSha256,
+          providerOutputSha256,
+          providerOutputByteLength,
+          storedMatchesProvider: providerOutputSha256
+            ? storedSha256 === providerOutputSha256
+            : null,
+          displayedOutputSha256: storedSha256,
+          displayedMatchesStored: true
+        };
+      })
+    );
+
+    return {
+      artifacts,
+      debugEntries
+    };
+  }
+
+  private async createStoredAssetArtifact(
+    debugLogger: ReturnType<typeof createVertexDebugLogger>,
+    input: {
+      label: string;
+      filePath: string;
+      mimeType: string;
+    }
+  ) {
+    const bytes = await storage.readAsset(input.filePath);
+
+    return debugLogger.writeBinaryArtifact({
+      name: input.label,
+      extension: input.mimeType === 'image/jpeg' ? 'jpg' : 'png',
+      label: input.label,
+      bytes,
+      mimeType: input.mimeType
+    });
   }
 }
 

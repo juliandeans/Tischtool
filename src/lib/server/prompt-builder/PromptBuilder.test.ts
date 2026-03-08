@@ -39,6 +39,10 @@ describe('promptBuilder', () => {
       rawInput: 'gelbe Wand, Hängepflanzen, ruhiger',
       normalizedLines: ['gelbe Wand', 'Hängepflanzen', 'ruhiger']
     });
+    expect(result.promptDebug.providerDebug.request.requestType).toBe('edit');
+    expect(result.promptDebug.providerDebug.request.sourceImageIncluded).toBe(true);
+    expect(result.promptDebug.providerDebug.request.maskIncluded).toBe(true);
+    expect(result.promptDebug.providerDebug.run).toBeNull();
   });
 
   it('parses line breaks as individual hints', () => {

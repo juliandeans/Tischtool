@@ -4,6 +4,7 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 import { imageService } from '$lib/server/services/ImageService';
+import { sha256Hex } from '$lib/server/vertex/debug';
 
 export const GET: RequestHandler = async ({ params, url }) => {
   const variant = (url.searchParams.get('variant') === 'thumbnail' ? 'thumbnail' : 'original') as
@@ -17,6 +18,23 @@ export const GET: RequestHandler = async ({ params, url }) => {
   }
 
   const fileBuffer = await readFile(download.filePath);
+
+  if (download.debugRunId) {
+    console.info(
+      `[vertex-debug][${download.debugRunId}][image-delivery] ${JSON.stringify(
+        {
+          imageId: params.id,
+          variant,
+          servedFilePath: download.filePath,
+          mimeType: download.mimeType,
+          byteLength: fileBuffer.byteLength,
+          sha256: sha256Hex(new Uint8Array(fileBuffer))
+        },
+        null,
+        2
+      )}`
+    );
+  }
 
   return new Response(fileBuffer, {
     headers: {
