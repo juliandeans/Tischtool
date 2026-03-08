@@ -27,7 +27,11 @@
     description="Lege zuerst ein Projekt an, damit Uploads sauber zugeordnet werden und in der Library erscheinen."
     accent="blue"
   >
-    <Button slot="actions" disabled>Projekt anlegen</Button>
+    <svelte:fragment slot="actions">
+      <slot name="actions">
+        <Button disabled>Projekt anlegen</Button>
+      </slot>
+    </svelte:fragment>
   </EmptyState>
 {:else}
   <div class="grid">

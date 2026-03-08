@@ -4,6 +4,7 @@
 
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import LibraryGrid from '$lib/components/library/LibraryGrid.svelte';
   import Select from '$lib/components/ui/Select.svelte';
 
@@ -68,22 +69,39 @@
 
 <div class="stack">
   <Card accent="yellow">
-    <form class="upload-form" on:submit={submitUpload}>
-      <Select bind:value={projectId} id="upload-project" label="Projekt" options={projectOptions} />
-      <div class="upload-form__field">
-        <span class="field-label">Datei</span>
-        <input bind:this={fileInput} accept="image/*" type="file" />
-      </div>
-      {#if uploadError}
-        <p class="upload-form__error">{uploadError}</p>
-      {/if}
-      <div class="cluster">
-        <Button loading={isUploading} variant="primary">Bild hochladen</Button>
-        <a href="/projects">
-          <Button>Projektverwaltung</Button>
+    {#if data.projects.length === 0}
+      <EmptyState
+        title="Zuerst ein Projekt anlegen"
+        description="Uploads brauchen ein Projekt. Lege erst ein Projekt an oder kehre danach zur Library zurück."
+        accent="yellow"
+      >
+        <a slot="actions" href="/projects">
+          <Button type="button" variant="primary">Projekt anlegen</Button>
         </a>
-      </div>
-    </form>
+      </EmptyState>
+    {:else}
+      <form class="upload-form" on:submit={submitUpload}>
+        <Select
+          bind:value={projectId}
+          id="upload-project"
+          label="Projekt"
+          options={projectOptions}
+        />
+        <div class="upload-form__field">
+          <span class="field-label">Datei</span>
+          <input bind:this={fileInput} accept="image/*" type="file" />
+        </div>
+        {#if uploadError}
+          <p class="upload-form__error">{uploadError}</p>
+        {/if}
+        <div class="cluster">
+          <Button type="submit" loading={isUploading} variant="primary">Bild hochladen</Button>
+          <a href="/projects">
+            <Button type="button">Projektverwaltung</Button>
+          </a>
+        </div>
+      </form>
+    {/if}
   </Card>
 
   <LibraryGrid

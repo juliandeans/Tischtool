@@ -49,7 +49,7 @@
 
 <header class="topbar">
   <div class="stack">
-    <span class="eyebrow">{env.PUBLIC_APP_NAME || 'Moebel Visualisierung'}</span>
+    <span class="eyebrow">{env.PUBLIC_APP_NAME || 'Möbel Visualisierung'}</span>
     <div>
       <h1>{meta.title}</h1>
       <p>{meta.subtitle}</p>
