@@ -1,3 +1,5 @@
+import sharp from 'sharp';
+
 import type {
   BinaryAssetDebug,
   CreateGenerationInput,
@@ -27,6 +29,8 @@ const clampSampleCount = (variantsRequested: number) =>
 const ENVIRONMENT_EDIT_MODE = 'EDIT_MODE_BGSWAP';
 const ENVIRONMENT_MASK_MODE = 'MASK_MODE_BACKGROUND';
 const ENVIRONMENT_EDIT_BASE_STEPS = 75;
+const BORDER_SAMPLE_SIZE = 16;
+const BACKGROUND_DISTANCE_THRESHOLD = 54;
 
 export type VertexExecutionPlan = {
   useVertex: boolean;
@@ -124,6 +128,124 @@ const getResponseMetadata = (payload: unknown): Record<string, unknown> | null =
 
 const getResponseRootKeys = (payload: unknown) =>
   payload && typeof payload === 'object' ? Object.keys(payload as Record<string, unknown>) : [];
+
+const normalizeImageForMask = async (sourceImageBytes: Uint8Array) =>
+  sharp(sourceImageBytes).rotate().ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+
+const sampleBorderAverage = (
+  data: Buffer<ArrayBufferLike>,
+  width: number,
+  height: number,
+  channels: number
+) => {
+  let count = 0;
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+  const maxX = width - 1;
+  const maxY = height - 1;
+
+  const visit = (x: number, y: number) => {
+    const index = (y * width + x) * channels;
+    red += data[index] ?? 0;
+    green += data[index + 1] ?? 0;
+    blue += data[index + 2] ?? 0;
+    count += 1;
+  };
+
+  for (let x = 0; x < width; x += 1) {
+    visit(x, 0);
+    if (maxY > 0) {
+      visit(x, maxY);
+    }
+  }
+
+  for (let y = 1; y < maxY; y += 1) {
+    visit(0, y);
+    if (maxX > 0) {
+      visit(maxX, y);
+    }
+  }
+
+  return {
+    red: count ? red / count : 0,
+    green: count ? green / count : 0,
+    blue: count ? blue / count : 0
+  };
+};
+
+const colorDistance = (
+  pixel: { red: number; green: number; blue: number },
+  reference: { red: number; green: number; blue: number }
+) =>
+  Math.sqrt(
+    (pixel.red - reference.red) ** 2 +
+      (pixel.green - reference.green) ** 2 +
+      (pixel.blue - reference.blue) ** 2
+  );
+
+const createDiagnosticMaskArtifacts = async (sourceImageBytes: Uint8Array) => {
+  const { data, info } = await normalizeImageForMask(sourceImageBytes);
+  const borderAverage = sampleBorderAverage(data, info.width, info.height, info.channels);
+  const maskRaw = Buffer.alloc(info.width * info.height);
+  const overlayRaw = Buffer.alloc(info.width * info.height * 4);
+
+  for (let y = 0; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      const pixelIndex = (y * info.width + x) * info.channels;
+      const maskIndex = y * info.width + x;
+      const red = data[pixelIndex] ?? 0;
+      const green = data[pixelIndex + 1] ?? 0;
+      const blue = data[pixelIndex + 2] ?? 0;
+      const alpha = data[pixelIndex + 3] ?? 255;
+      const edgeDistance =
+        Math.min(x, info.width - 1 - x, y, info.height - 1 - y) <= BORDER_SAMPLE_SIZE;
+      const likelyBackground =
+        alpha < 8 ||
+        colorDistance({ red, green, blue }, borderAverage) < BACKGROUND_DISTANCE_THRESHOLD ||
+        edgeDistance;
+      const maskValue = likelyBackground ? 255 : 0;
+      maskRaw[maskIndex] = maskValue;
+
+      const overlayIndex = maskIndex * 4;
+      overlayRaw[overlayIndex] = 227;
+      overlayRaw[overlayIndex + 1] = 58;
+      overlayRaw[overlayIndex + 2] = 44;
+      overlayRaw[overlayIndex + 3] = likelyBackground ? 110 : 0;
+    }
+  }
+
+  const maskPng = await sharp(maskRaw, {
+    raw: {
+      width: info.width,
+      height: info.height,
+      channels: 1
+    }
+  })
+    .png()
+    .toBuffer();
+
+  const overlayPng = await sharp(sourceImageBytes)
+    .rotate()
+    .ensureAlpha()
+    .composite([
+      {
+        input: overlayRaw,
+        raw: {
+          width: info.width,
+          height: info.height,
+          channels: 4
+        }
+      }
+    ])
+    .png()
+    .toBuffer();
+
+  return {
+    maskPng,
+    overlayPng
+  };
+};
 
 const inspectVertexImageResponse = (payload: unknown) => {
   if (
@@ -265,7 +387,9 @@ const createProviderDebugRequest = (
       modeEligibleForVertex: input.mode === 'environment_edit',
       sampleCountClamped: clampSampleCount(input.variantsRequested),
       placementProvided: Boolean(input.placement),
-      automaticBackgroundMask: plan.useVertex && input.mode === 'environment_edit'
+      automaticBackgroundMask: plan.useVertex && input.mode === 'environment_edit',
+      diagnosticMaskVisualizationIsApproximation:
+        plan.useVertex && input.mode === 'environment_edit'
     }
   };
 };
@@ -465,6 +589,7 @@ export class VertexImageService {
       mimeType: sourceImageMimeType ?? 'image/png',
       base64: sourceImageBase64
     });
+    const diagnosticMaskArtifacts = await createDiagnosticMaskArtifacts(sourceImageBytes);
     const requestPayload = sanitizeProviderPayload(payload) as Record<string, unknown>;
     const requestType = getRequestType(input.mode);
     const modelHint = getModelHint(configuration.model, requestType);
@@ -545,6 +670,30 @@ export class VertexImageService {
 
     if (inputArtifact) {
       artifacts.push(inputArtifact);
+    }
+
+    const automaticMaskArtifact = await debugLogger.writeBinaryArtifact({
+      name: 'input-mask-approximation',
+      extension: 'png',
+      label: 'input-mask-approximation',
+      bytes: diagnosticMaskArtifacts.maskPng,
+      mimeType: 'image/png'
+    });
+
+    if (automaticMaskArtifact) {
+      artifacts.push(automaticMaskArtifact);
+    }
+
+    const automaticMaskOverlayArtifact = await debugLogger.writeBinaryArtifact({
+      name: 'input-mask-overlay',
+      extension: 'png',
+      label: 'input-mask-overlay',
+      bytes: diagnosticMaskArtifacts.overlayPng,
+      mimeType: 'image/png'
+    });
+
+    if (automaticMaskOverlayArtifact) {
+      artifacts.push(automaticMaskOverlayArtifact);
     }
 
     const accessToken = await vertexClient.getAccessToken();

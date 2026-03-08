@@ -7,7 +7,12 @@ import { getDb, isDatabaseConfigured } from '$lib/server/db';
 import { images, projects } from '$lib/server/db/schema';
 import { projectService } from '$lib/server/services/ProjectService';
 import { storage } from '$lib/server/storage';
-import type { GenerationMode, GenerationPlacement } from '$lib/types/generation';
+import { sha256Hex } from '$lib/server/vertex/debug';
+import type {
+  GenerationMode,
+  GenerationPlacement,
+  StorageTransformDebug
+} from '$lib/types/generation';
 import type {
   ImageDetail,
   ImageSummary,
@@ -15,6 +20,18 @@ import type {
   UploadImageInput
 } from '$lib/types/image';
 import { imageTitleFromPath } from '$lib/utils/image';
+
+const pickSharpMetadata = (metadata: sharp.Metadata) => ({
+  format: metadata.format ?? null,
+  width: metadata.width ?? null,
+  height: metadata.height ?? null,
+  space: metadata.space ?? null,
+  channels: metadata.channels ?? null,
+  depth: metadata.depth ?? null,
+  density: metadata.density ?? null,
+  hasAlpha: metadata.hasAlpha ?? null,
+  orientation: metadata.orientation ?? null
+});
 
 export class ImageService {
   async listProjectImages(projectId: string) {
@@ -431,11 +448,45 @@ export class ImageService {
 
     let generatedBuffer: Buffer;
     let metadata: sharp.Metadata;
+    let processingDebug: StorageTransformDebug | null = null;
 
     if (input.generatedAsset) {
       const providerImage = sharp(input.generatedAsset.bytes).rotate();
+      const sourceMetadata = await sharp(input.generatedAsset.bytes, { failOn: 'none' }).metadata();
       metadata = await providerImage.metadata();
       generatedBuffer = await providerImage.png().toBuffer();
+      const outputMetadata = await sharp(generatedBuffer).metadata();
+      const sourceSha256 = sha256Hex(input.generatedAsset.bytes);
+      const outputSha256 = sha256Hex(generatedBuffer);
+      const reasons = [
+        'Provider-Output wird mit sharp eingelesen.',
+        'rotate() wendet EXIF-Orientierung an und normalisiert Pixel.',
+        'png() encodiert das Ergebnis erneut als PNG fuer App-Speicherung und Thumbnail-Erzeugung.'
+      ];
+
+      if (sourceMetadata.orientation && sourceMetadata.orientation !== 1) {
+        reasons.push('EXIF-Orientierung vorhanden: das Bild wird physisch neu ausgerichtet.');
+      }
+
+      if (input.generatedAsset.mimeType !== 'image/png') {
+        reasons.push(`MIME-Wechsel von ${input.generatedAsset.mimeType} zu image/png.`);
+      }
+
+      processingDebug = {
+        functionPath: 'sharp(input.generatedAsset.bytes).rotate().png().toBuffer()',
+        reencoded: true,
+        sourceMimeType: input.generatedAsset.mimeType,
+        sourceByteLength: input.generatedAsset.bytes.byteLength,
+        sourceSha256,
+        sourceMetadata: pickSharpMetadata(sourceMetadata),
+        outputMimeType: 'image/png',
+        outputByteLength: generatedBuffer.length,
+        outputSha256,
+        outputMetadata: pickSharpMetadata(outputMetadata),
+        orientationApplied: Boolean(sourceMetadata.orientation && sourceMetadata.orientation !== 1),
+        bytesChanged: sourceSha256 !== outputSha256,
+        reasons
+      };
     } else if (input.mode === 'room_insert' && input.placement) {
       const roomImage = await this.getImage(input.placement.roomImageId);
       const roomBytes = await storage.readAsset(roomImage.filePath);
@@ -543,7 +594,8 @@ export class ImageService {
           roomImageId:
             input.mode === 'room_insert' && input.placement ? input.placement.roomImageId : null,
           fakeGeneration: input.generatedAsset ? false : true,
-          provider: input.generatedAsset?.provider ?? 'dev-fake'
+          provider: input.generatedAsset?.provider ?? 'dev-fake',
+          storageTransformDebug: processingDebug
         }
       })
       .returning({
@@ -558,7 +610,8 @@ export class ImageService {
 
     return {
       ...image,
-      byteSize: generatedBuffer.length
+      byteSize: generatedBuffer.length,
+      processingDebug
     };
   }
 

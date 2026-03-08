@@ -105,6 +105,22 @@ export type ProviderArtifactDebug = {
   sha256: string | null;
 };
 
+export type StorageTransformDebug = {
+  functionPath: string;
+  reencoded: boolean;
+  sourceMimeType: string | null;
+  sourceByteLength: number | null;
+  sourceSha256: string | null;
+  sourceMetadata: Record<string, unknown> | null;
+  outputMimeType: string | null;
+  outputByteLength: number | null;
+  outputSha256: string | null;
+  outputMetadata: Record<string, unknown> | null;
+  orientationApplied: boolean;
+  bytesChanged: boolean;
+  reasons: string[];
+};
+
 export type PersistedImageDebug = {
   imageId: string;
   relativeFilePath: string;
@@ -118,8 +134,10 @@ export type PersistedImageDebug = {
   providerOutputSha256: string | null;
   providerOutputByteLength: number | null;
   storedMatchesProvider: boolean | null;
+  storedMatchesProviderReason: string | null;
   displayedOutputSha256: string | null;
   displayedMatchesStored: boolean | null;
+  storageTransform: StorageTransformDebug | null;
 };
 
 export type ProviderDebugRequest = {

@@ -459,6 +459,16 @@
                             {image.storedSha256 ?? 'keine'} · Displayed SHA-256:
                             {image.displayedOutputSha256 ?? 'keine'}
                           </p>
+                          {#if image.storedMatchesProviderReason}
+                            <p>Abweichungsgrund: {image.storedMatchesProviderReason}</p>
+                          {/if}
+                          {#if image.storageTransform}
+                            <pre class="prompt-debug__code">{JSON.stringify(
+                                image.storageTransform,
+                                null,
+                                2
+                              )}</pre>
+                          {/if}
                         </div>
                       {/each}
                     </div>

@@ -610,8 +610,15 @@ export class GenerationService {
           storedMatchesProvider: providerOutputSha256
             ? storedSha256 === providerOutputSha256
             : null,
+          storedMatchesProviderReason:
+            providerOutputSha256 && storedSha256 !== providerOutputSha256
+              ? image.processingDebug
+                ? image.processingDebug.reasons.join(' ')
+                : 'Gespeicherte Datei weicht vom Provider-Output ab, aber es liegt kein Transformationsprotokoll vor.'
+              : null,
           displayedOutputSha256: storedSha256,
-          displayedMatchesStored: true
+          displayedMatchesStored: true,
+          storageTransform: image.processingDebug ?? null
         };
       })
     );
