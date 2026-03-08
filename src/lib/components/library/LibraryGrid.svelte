@@ -1,7 +1,13 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
+
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import ImageCard from '$lib/components/library/ImageCard.svelte';
   import Spinner from '$lib/components/ui/Spinner.svelte';
+
+  const dispatch = createEventDispatcher<{
+    delete: { id: string };
+  }>();
 
   type ImageItem = {
     id: string;
@@ -16,6 +22,7 @@
 
   export let items: ImageItem[] = [];
   export let loading = false;
+  export let deletingId = '';
 </script>
 
 {#if loading}
@@ -31,7 +38,11 @@
 {:else}
   <div class="grid">
     {#each items as item}
-      <ImageCard {...item} />
+      <ImageCard
+        {...item}
+        deleting={deletingId === item.id}
+        on:delete={() => dispatch('delete', { id: item.id })}
+      />
     {/each}
   </div>
 {/if}

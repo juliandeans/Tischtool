@@ -13,10 +13,6 @@ export type VertexConfiguration = {
 };
 
 export class VertexClient {
-  private auth = new GoogleAuth({
-    scopes: [CLOUD_PLATFORM_SCOPE]
-  });
-
   getConfiguration(): VertexConfiguration {
     const config = getVertexRuntimeConfig();
 
@@ -29,6 +25,16 @@ export class VertexClient {
     };
   }
 
+  private createAuthClient() {
+    const configuration = this.getConfiguration();
+
+    return new GoogleAuth({
+      scopes: [CLOUD_PLATFORM_SCOPE],
+      // Use the configured service account file directly when present instead of relying on ambient ADC only.
+      keyFilename: configuration.credentialsPath || undefined
+    });
+  }
+
   getPredictUrl(model = this.getConfiguration().model) {
     const config = this.getConfiguration();
 
@@ -36,8 +42,8 @@ export class VertexClient {
   }
 
   async getAccessToken() {
-    // GoogleAuth uses ADC automatically and honors GOOGLE_APPLICATION_CREDENTIALS when set.
-    const client = await this.auth.getClient();
+    // Prefer the configured service account file when present; otherwise fall back to ambient ADC.
+    const client = await this.createAuthClient().getClient();
     const token = await client.getAccessToken();
     const accessToken = typeof token === 'string' ? token : token?.token;
 

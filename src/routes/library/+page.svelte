@@ -14,6 +14,7 @@
   let imageType = 'upload';
   let fileInput: HTMLInputElement | null = null;
   let isUploading = false;
+  let deletingImageId = '';
   let uploadError = '';
   let uploadSuccess = '';
   let selectedFileName = '';
@@ -61,6 +62,32 @@
     uploadSuccess = 'Bild wurde gespeichert und ist jetzt in der Library sichtbar.';
     await invalidateAll();
   };
+
+  const deleteImage = async (imageId: string) => {
+    uploadError = '';
+    uploadSuccess = '';
+
+    if (!confirm('Bild wirklich aus der Bibliothek löschen?')) {
+      return;
+    }
+
+    deletingImageId = imageId;
+
+    const response = await fetch(`/api/images/${imageId}`, {
+      method: 'DELETE'
+    });
+
+    deletingImageId = '';
+
+    if (!response.ok) {
+      const payload = (await response.json()) as { error?: string };
+      uploadError = payload.error || 'Bild konnte nicht gelöscht werden.';
+      return;
+    }
+
+    uploadSuccess = 'Bild wurde aus der Bibliothek gelöscht.';
+    await invalidateAll();
+  };
 </script>
 
 <div class="stack">
@@ -98,15 +125,7 @@
                 selectedFileName = target.files?.[0]?.name ?? '';
               }}
             />
-            <Button
-              type="button"
-              variant="secondary"
-              on:click={() => {
-                fileInput?.click();
-              }}
-            >
-              Bild auswählen
-            </Button>
+            <label class="upload-picker__trigger" for="library-file"> Bild auswählen </label>
             <div class="upload-picker__meta">
               <strong>{selectedFileName || 'Noch keine Datei ausgewählt'}</strong>
               <span>PNG, JPG oder WebP werden direkt als Original und Thumbnail gespeichert.</span>
@@ -137,7 +156,9 @@
       downloadUrl: image.downloadUrl,
       editUrl: image.editUrl
     }))}
+    deletingId={deletingImageId}
     loading={Boolean($navigating)}
+    on:delete={(event) => deleteImage(event.detail.id)}
   />
 </div>
 
@@ -162,8 +183,31 @@
     padding: var(--space-3);
   }
 
-  .upload-picker :global(.button) {
+  .upload-picker__trigger {
+    align-items: center;
     align-self: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-button);
+    box-shadow: var(--color-shadow-inset);
+    cursor: pointer;
+    display: inline-flex;
+    font-weight: 600;
+    justify-content: center;
+    line-height: 1;
+    min-height: 44px;
+    padding: 0 18px;
+    text-decoration: none;
+  }
+
+  .upload-picker__trigger:hover {
+    transform: translateY(-1px);
+  }
+
+  .upload-picker__trigger:focus-within,
+  .upload-picker__trigger:focus-visible {
+    outline: 2px solid var(--color-blue);
+    outline-offset: 2px;
   }
 
   .upload-picker__meta {

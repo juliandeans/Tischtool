@@ -16,6 +16,7 @@
     class={classes}
     aria-label={label}
     title={label}
+    on:click
     {download}
     {href}
     {rel}
@@ -30,6 +31,7 @@
     class={classes}
     aria-label={label}
     title={label}
+    on:click
     {disabled}
   >
     <slot />

@@ -179,6 +179,30 @@ export class ProjectService {
       })
       .where(eq(projects.id, projectId));
   }
+
+  async syncCoverImage(projectId: string) {
+    if (!isDatabaseConfigured()) {
+      return;
+    }
+
+    const db = getDb();
+    const [latestImage] = await db
+      .select({
+        id: images.id
+      })
+      .from(images)
+      .where(eq(images.projectId, projectId))
+      .orderBy(desc(images.createdAt))
+      .limit(1);
+
+    await db
+      .update(projects)
+      .set({
+        coverImageId: latestImage?.id ?? null,
+        updatedAt: new Date()
+      })
+      .where(eq(projects.id, projectId));
+  }
 }
 
 export const projectService = new ProjectService();

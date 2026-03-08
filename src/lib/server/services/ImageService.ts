@@ -574,6 +574,30 @@ export class ImageService {
       fileName: `${title}.png`
     };
   }
+
+  async deleteImage(id: string) {
+    if (!isDatabaseConfigured()) {
+      throw new Error('DATABASE_URL is not configured.');
+    }
+
+    const image = await this.getImage(id);
+    const db = getDb();
+
+    await db.delete(images).where(eq(images.id, id));
+
+    await Promise.all([
+      storage.deleteAsset(image.filePath),
+      image.thumbnailPath ? storage.deleteAsset(image.thumbnailPath) : Promise.resolve()
+    ]);
+
+    await projectService.syncCoverImage(image.projectId);
+    await projectService.touchProject(image.projectId);
+
+    return {
+      id: image.id,
+      projectId: image.projectId
+    };
+  }
 }
 
 export const imageService = new ImageService();

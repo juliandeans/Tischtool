@@ -13,7 +13,7 @@
       subtitle: 'Projektliste, Anlage und direkte Einstiege in Upload- und Bildflows.'
     },
     '/library': {
-      title: 'Bildbibliothek',
+      title: 'Bibliothek',
       subtitle: 'Bildraster mit Upload, Download, Edit und Projektfilter.'
     },
     '/editor': {

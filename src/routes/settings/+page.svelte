@@ -2,15 +2,8 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import Input from '$lib/components/ui/Input.svelte';
-  import Select from '$lib/components/ui/Select.svelte';
-
   export let data;
   export let form;
-
-  const providerPreferenceOptions = [
-    { value: 'real', label: 'Echter Provider bevorzugt' },
-    { value: 'fake', label: 'Fake-Flow bevorzugt' }
-  ];
 </script>
 
 <div class="settings-layout">
@@ -52,17 +45,60 @@
   <Card accent="blue">
     <form class="stack settings-card" method="POST">
       <div class="section-head">
-        <h2>Laufzeit-Präferenzen</h2>
-        <p>Diese Einstellungen gelten nur für den aktuellen Browser und steuern den MVP-Flow.</p>
+        <h2>Betriebsmodus</h2>
+        <p>
+          Hier schaltest du zwischen Test-/Fallback-Betrieb und echtem Google-Vertex-Betrieb um.
+          Die Einstellung gilt für diesen Browser.
+        </p>
       </div>
 
-      <Select
-        id="settings-provider-preference"
-        name="providerPreference"
-        label="Provider-Modus"
-        value={data.providerSettings.providerPreference}
-        options={providerPreferenceOptions}
-      />
+      <div class="mode-grid">
+        <label
+          class:selected={data.providerSettings.providerPreference === 'fake'}
+          class="mode-card"
+        >
+          <input
+            type="radio"
+            name="providerPreference"
+            value="fake"
+            checked={data.providerSettings.providerPreference === 'fake'}
+          />
+          <span class="mode-card__copy">
+            <strong>Test / Fallback</strong>
+            <small>
+              Nutzt bewusst den bestehenden Dev-Flow ohne echte Bilderzeugung über Google.
+            </small>
+          </span>
+        </label>
+
+        <label
+          class:selected={data.providerSettings.providerPreference === 'real'}
+          class="mode-card"
+        >
+          <input
+            type="radio"
+            name="providerPreference"
+            value="real"
+            checked={data.providerSettings.providerPreference === 'real'}
+          />
+          <span class="mode-card__copy">
+            <strong>Echter Google-Vertex-Betrieb</strong>
+            <small>
+              Verwendet für `environment_edit` den echten Vertex-Provider, sofern Konfiguration und
+              ADC verfügbar sind.
+            </small>
+          </span>
+        </label>
+      </div>
+
+      <p class="note">
+        Aktuell gewählt:
+        <strong>
+          {data.providerSettings.providerPreference === 'real'
+            ? 'Echter Google-Vertex-Betrieb'
+            : 'Test / Fallback'}
+        </strong>
+      </p>
 
       <label class="toggle">
         <input
@@ -181,6 +217,45 @@
     display: grid;
     gap: var(--space-3);
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .mode-grid {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .mode-card {
+    align-items: start;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--color-shadow-inset);
+    cursor: pointer;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: auto 1fr;
+    padding: 14px 16px;
+  }
+
+  .mode-card.selected {
+    border-color: var(--color-blue);
+    background: color-mix(in srgb, var(--color-blue) 6%, white);
+  }
+
+  .mode-card input {
+    accent-color: var(--color-blue);
+    height: 18px;
+    margin: 3px 0 0;
+    width: 18px;
+  }
+
+  .mode-card__copy {
+    display: grid;
+    gap: 6px;
+  }
+
+  .mode-card__copy small {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
   }
 
   .toggle {
