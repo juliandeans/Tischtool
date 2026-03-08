@@ -9,16 +9,7 @@
   let presetName = 'Wohnlich Tageslicht';
 </script>
 
-<div class="page-header">
-  <span class="eyebrow">Presets</span>
-  <h1>Preset-Verwaltung</h1>
-  <p>
-    Seedbare Stil- und Lichtvorgaben sind visuell vorbereitet. Persistenz und echte Preset-Daten
-    folgen später.
-  </p>
-</div>
-
-<div class="stack">
+<div class="stack page-body--flush">
   <Card accent="yellow">
     <div class="stack">
       <Input bind:value={presetName} id="preset-name" label="Preset-Name" />

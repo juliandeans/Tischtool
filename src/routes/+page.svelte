@@ -4,15 +4,6 @@
 </script>
 
 <div class="stack">
-  <div class="page-header">
-    <span class="eyebrow">Start</span>
-    <h1>Der MVP ist als zusammenhängender Produktfluss benutzbar.</h1>
-    <p>
-      Projekte, Upload, Library, Editor, Room Insert und Costs greifen jetzt zusammen. Nutze die
-      Sidebar oder starte direkt mit einem Projekt.
-    </p>
-  </div>
-
   <Card accent="yellow">
     <div class="stack">
       <p class="muted">
@@ -20,8 +11,8 @@
         oder Room Insert weiter.
       </p>
       <div class="cluster">
-        <Button href="/projects" variant="primary">Zu Projects</Button>
-        <Button href="/library">Zur Library</Button>
+        <Button href="/projects" variant="primary">Zu Projekten</Button>
+        <Button href="/library">Zur Bildbibliothek</Button>
       </div>
     </div>
   </Card>

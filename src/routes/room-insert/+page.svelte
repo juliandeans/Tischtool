@@ -171,15 +171,6 @@
   };
 </script>
 
-<div class="page-header">
-  <span class="eyebrow">Room Insert</span>
-  <h1>Möbel in Raumfoto platzieren</h1>
-  <p>
-    Wähle ein Raumfoto, ein Möbelbild und setze die Zielregion direkt im Bild. Der Dev-Flow
-    speichert neue Varianten non-destruktiv in Library und Projektverlauf.
-  </p>
-</div>
-
 {#if data.projects.length === 0}
   <EmptyState
     title="Noch kein Projekt vorhanden"
@@ -228,7 +219,7 @@
       />
     </div>
   {:else}
-    <div class="split-layout">
+    <div class="split-layout room-insert__workspace">
       <RoomPlacementCanvas
         roomImageUrl={roomImage?.downloadUrl ?? ''}
         roomImageTitle={roomImage?.title ?? ''}
@@ -282,11 +273,10 @@
     {/if}
 
     <section class="stack">
-      <div class="page-header room-insert__results-header">
-        <span class="eyebrow">Ergebnisse</span>
+      <div class="section-header room-insert__results-header">
         <h2>Gespeicherte Raumvarianten</h2>
         <p>
-          Diese Varianten bleiben in der Library sichtbar und können später erneut im Editor
+          Diese Varianten bleiben in der Bibliothek sichtbar und können später erneut im Editor
           geöffnet werden.
         </p>
       </div>
@@ -309,6 +299,11 @@
 {/if}
 
 <style>
+  .room-insert__workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+    padding-right: 1px;
+  }
+
   .room-insert__extras {
     margin-top: var(--space-4);
   }
@@ -321,8 +316,10 @@
     margin-bottom: 0;
   }
 
-  .room-insert__results-header h2,
-  .room-insert__results-header p {
-    margin: 0;
+  @media (max-width: 960px) {
+    .room-insert__workspace {
+      grid-template-columns: 1fr;
+      padding-right: 0;
+    }
   }
 </style>

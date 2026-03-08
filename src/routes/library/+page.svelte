@@ -16,6 +16,7 @@
   let isUploading = false;
   let uploadError = '';
   let uploadSuccess = '';
+  let selectedFileName = '';
 
   $: projectOptions = [
     { value: '', label: 'Projekt wählen' },
@@ -55,20 +56,12 @@
     if (fileInput) {
       fileInput.value = '';
     }
+    selectedFileName = '';
 
     uploadSuccess = 'Bild wurde gespeichert und ist jetzt in der Library sichtbar.';
     await invalidateAll();
   };
 </script>
-
-<div class="page-header">
-  <span class="eyebrow">Library</span>
-  <h1>Bildbibliothek</h1>
-  <p>
-    Bilder werden lokal gespeichert, als Thumbnail angezeigt und direkt mit der Library und den
-    Projektpfaden verdrahtet.
-  </p>
-</div>
 
 <div class="stack">
   <Card accent="yellow">
@@ -93,7 +86,32 @@
         />
         <div class="upload-form__field">
           <span class="field-label">Datei</span>
-          <input bind:this={fileInput} accept="image/*" type="file" />
+          <div class="upload-picker">
+            <input
+              bind:this={fileInput}
+              accept="image/*"
+              class="visually-hidden"
+              id="library-file"
+              type="file"
+              on:change={(event) => {
+                const target = event.currentTarget as HTMLInputElement;
+                selectedFileName = target.files?.[0]?.name ?? '';
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              on:click={() => {
+                fileInput?.click();
+              }}
+            >
+              Bild auswählen
+            </Button>
+            <div class="upload-picker__meta">
+              <strong>{selectedFileName || 'Noch keine Datei ausgewählt'}</strong>
+              <span>PNG, JPG oder WebP werden direkt als Original und Thumbnail gespeichert.</span>
+            </div>
+          </div>
         </div>
         {#if uploadError}
           <p class="upload-form__error">{uploadError}</p>
@@ -103,7 +121,6 @@
         {/if}
         <div class="cluster">
           <Button type="submit" loading={isUploading} variant="primary">Bild hochladen</Button>
-          <Button href="/projects" type="button">Projektverwaltung</Button>
         </div>
       </form>
     {/if}
@@ -135,18 +152,41 @@
     gap: 8px;
   }
 
+  .upload-picker {
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: var(--space-3);
+  }
+
+  .upload-picker :global(.button) {
+    align-self: center;
+  }
+
+  .upload-picker__meta {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .upload-picker__meta strong,
+  .upload-picker__meta span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .upload-picker__meta span {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+
   .field-label {
     font-size: 0.95rem;
     font-weight: 600;
-  }
-
-  input[type='file'] {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-input);
-    box-shadow: var(--color-shadow-inset);
-    min-height: 44px;
-    padding: 10px 14px;
   }
 
   .upload-form__error {
@@ -158,5 +198,16 @@
     color: var(--color-blue);
     font-weight: 600;
     margin: 0;
+  }
+
+  @media (max-width: 720px) {
+    .upload-picker {
+      grid-template-columns: 1fr;
+    }
+
+    .upload-picker__meta strong,
+    .upload-picker__meta span {
+      white-space: normal;
+    }
   }
 </style>

@@ -27,7 +27,7 @@
 
   .shell__main {
     display: grid;
-    gap: var(--space-4);
+    gap: var(--space-2);
     min-width: 0;
     padding: var(--space-2) 0 var(--space-4);
   }

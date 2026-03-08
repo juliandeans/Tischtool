@@ -6,27 +6,27 @@
     '/': {
       title: 'Möbel Visualisierung',
       subtitle:
-        'Ruhiger MVP für Projekte, Library, Editor, Room Insert und nachvollziehbare Dev-Kosten.'
+        'Ruhiger MVP für Projekte, Bibliothek, Editor, Raumfoto und nachvollziehbare Dev-Kosten.'
     },
     '/projects': {
-      title: 'Projects',
+      title: 'Projektübersicht',
       subtitle: 'Projektliste, Anlage und direkte Einstiege in Upload- und Bildflows.'
     },
     '/library': {
-      title: 'Library',
+      title: 'Bildbibliothek',
       subtitle: 'Bildraster mit Upload, Download, Edit und Projektfilter.'
     },
     '/editor': {
       title: 'Editor',
       subtitle:
-        'Öffne ein bestehendes Bild aus der Library oder springe direkt in die letzte Variante.'
+        'Öffne ein bestehendes Bild aus der Bibliothek oder springe direkt in die letzte Variante.'
     },
     '/room-insert': {
-      title: 'Room Insert',
+      title: 'Raumfoto einsetzen',
       subtitle: 'Eigenständiger MVP-Flow für Raumfoto, Zielregion und Varianten.'
     },
     '/costs': {
-      title: 'Costs',
+      title: 'Kosten',
       subtitle: 'Zusammenfassung und Log-Tabelle für nachvollziehbare Dev-Kosten.'
     },
     '/presets': {
@@ -34,7 +34,7 @@
       subtitle: 'Aktuell als vorbereitete Oberfläche für spätere Preset-Verwaltung.'
     },
     '/settings': {
-      title: 'Settings',
+      title: 'Einstellungen',
       subtitle: 'Dokumentierte lokale Konfiguration als read-first Platzhalterfläche.'
     }
   };
@@ -42,19 +42,19 @@
   $: pathname = $page.url.pathname;
   $: meta = pathname.startsWith('/projects/')
     ? {
-        title: 'Project Detail',
+        title: 'Projekt',
         subtitle: 'Detailansicht für ein Projekt mit Originalbild und Varianten.'
       }
     : pathname.startsWith('/editor/')
       ? {
           title: 'Editor',
-          subtitle: `Einzelbildansicht für ${pathname.split('/').pop() ?? 'image'}.`
+          subtitle: `Einzelbildansicht für ${pathname.split('/').pop() ?? 'bild'}.`
         }
       : (labels[pathname] ?? labels['/']);
 </script>
 
 <header class="topbar">
-  <div class="stack">
+  <div class="topbar__copy">
     <span class="eyebrow">{env.PUBLIC_APP_NAME || 'Möbel Visualisierung'}</span>
     <div>
       <h1>{meta.title}</h1>
@@ -72,8 +72,13 @@
   .topbar {
     align-items: start;
     display: flex;
-    gap: var(--space-3);
+    gap: var(--space-2);
     justify-content: space-between;
+  }
+
+  .topbar__copy {
+    display: grid;
+    gap: 8px;
   }
 
   h1,
@@ -88,14 +93,14 @@
 
   p {
     color: var(--color-text-muted);
-    margin-top: 6px;
+    margin-top: 4px;
     max-width: 65ch;
   }
 
   .topbar__status {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     justify-content: flex-end;
   }
 
@@ -104,7 +109,7 @@
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.04em;
-    padding: 8px 12px;
+    padding: 7px 11px;
     text-transform: uppercase;
   }
 

@@ -2,13 +2,13 @@
   import { page } from '$app/stores';
 
   const navigation = [
-    { href: '/projects', label: 'Projects', accent: 'blue' },
-    { href: '/library', label: 'Library', accent: 'yellow' },
+    { href: '/projects', label: 'Projekte', accent: 'blue' },
+    { href: '/library', label: 'Bibliothek', accent: 'yellow' },
     { href: '/editor', label: 'Editor', accent: 'blue' },
-    { href: '/room-insert', label: 'Room Insert', accent: 'red' },
-    { href: '/costs', label: 'Costs', accent: 'yellow' },
+    { href: '/room-insert', label: 'Raumfoto', accent: 'red' },
+    { href: '/costs', label: 'Kosten', accent: 'yellow' },
     { href: '/presets', label: 'Presets', accent: 'blue' },
-    { href: '/settings', label: 'Settings', accent: 'red' }
+    { href: '/settings', label: 'Einstellungen', accent: 'red' }
   ] as const;
 
   const isActive = (href: string, pathname: string) =>
@@ -48,12 +48,15 @@
 
 <style>
   .sidebar {
+    align-self: start;
     background: rgba(255, 255, 255, 0.82);
     backdrop-filter: blur(10px);
     border: 1px solid var(--color-border);
     border-radius: 20px;
     display: grid;
     gap: var(--space-4);
+    grid-template-rows: auto 1fr;
+    height: calc(100vh - (var(--space-3) * 2));
     padding: var(--space-4);
     position: sticky;
     top: var(--space-3);
@@ -89,8 +92,9 @@
   }
 
   .sidebar__nav {
+    align-content: start;
     display: grid;
-    gap: 10px;
+    gap: var(--space-1);
   }
 
   .sidebar__link {
@@ -143,6 +147,7 @@
 
   @media (max-width: 960px) {
     .sidebar {
+      height: auto;
       position: static;
     }
 

@@ -8,7 +8,6 @@
 </script>
 
 <div class="page-header">
-  <span class="eyebrow">Projects</span>
   <h1>{data.project.name}</h1>
   <p>
     Projektkontext, Bilder und direkte Einstiege in Upload, Editor und Room Insert sind hier
@@ -27,9 +26,10 @@
       <div class="muted">Zuletzt geändert: {toShortDate(data.project.updatedAt)}</div>
       <div class="cluster">
         <Button href="/projects">Zurück zur Liste</Button>
-        <Button href={`/library?projectId=${data.project.id}`} variant="primary">Zur Library</Button
+        <Button href={`/library?projectId=${data.project.id}`} variant="primary"
+          >Zur Bildbibliothek</Button
         >
-        <Button href={`/room-insert?projectId=${data.project.id}`}>Room Insert</Button>
+        <Button href={`/room-insert?projectId=${data.project.id}`}>Zum Raumfoto-Modus</Button>
         {#if data.images[0]}
           <Button href={data.images[0].editUrl}>Letztes Bild im Editor</Button>
         {/if}

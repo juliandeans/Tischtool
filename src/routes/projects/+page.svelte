@@ -59,13 +59,7 @@
   };
 </script>
 
-<div class="page-header">
-  <span class="eyebrow">Projects</span>
-  <h1>Projektübersicht</h1>
-  <p>Lege Projekte direkt in der App an. Erst danach können Uploads sauber zugeordnet werden.</p>
-</div>
-
-<div class="stack">
+<div class="stack page-body--flush">
   <div class="page-actions">
     <Button
       type="button"
@@ -78,7 +72,6 @@
     >
       {showCreateForm ? 'Formular schließen' : 'Neues Projekt'}
     </Button>
-    <Button href="/library" type="button">Zur Library</Button>
   </div>
 
   {#if showCreateForm}

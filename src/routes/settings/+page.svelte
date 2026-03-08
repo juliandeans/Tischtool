@@ -9,16 +9,7 @@
   let storageBasePath = './data';
 </script>
 
-<div class="page-header">
-  <span class="eyebrow">Settings</span>
-  <h1>Lokale Grundeinstellungen</h1>
-  <p>
-    Die Seite spiegelt die dokumentierten Umgebungswerte wider, ohne bereits Konfigurationen zu
-    speichern oder Backend-Logik anzustoßen.
-  </p>
-</div>
-
-<Card accent="red">
+<Card accent="red" class="page-body--flush">
   <div class="stack">
     <Input bind:value={appName} id="settings-app-name" label="App-Name" />
     <Select

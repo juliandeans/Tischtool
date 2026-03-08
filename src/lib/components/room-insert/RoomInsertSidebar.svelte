@@ -69,7 +69,7 @@
 <div class="stack">
   <Card accent="red">
     <div class="stack">
-      <div class="eyebrow">Room Insert</div>
+      <div class="eyebrow">Raumfoto</div>
       <h2>Raumfoto + Möbelbild</h2>
       <p class="muted">Eigener MVP-Flow für Kundenfotos mit Klick oder Zielbox.</p>
     </div>

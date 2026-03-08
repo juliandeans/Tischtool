@@ -58,15 +58,6 @@
   };
 </script>
 
-<div class="page-header">
-  <span class="eyebrow">Editor</span>
-  <h1>Einzelbild-Editor</h1>
-  <p>
-    Das aktuelle Bild wird als Ausgangspunkt für `environment_edit` und `material_edit` verwendet.
-    Neue Varianten werden nicht destruktiv als Child-Bilder gespeichert.
-  </p>
-</div>
-
 <div class="split-layout">
   <EditorCanvas
     imageId={data.image.id}
@@ -107,7 +98,7 @@
   <Card accent="yellow">
     <div class="stack">
       <div class="cluster">
-        <span class="eyebrow">Versionierung</span>
+        <strong>Versionierung</strong>
         <span class="muted">Projekt: {data.project.name}</span>
         <span class="muted"
           >Modus: {activeMode === 'material_edit' ? 'Material Edit' : 'Environment Edit'}</span
@@ -127,15 +118,14 @@
   {#if data.image.promptSnapshot?.promptText}
     <Card>
       <div class="stack">
-        <div class="eyebrow">Letzter Prompt</div>
+        <strong>Letzter Prompt</strong>
         <pre class="editor-page__prompt">{data.image.promptSnapshot.promptText}</pre>
       </div>
     </Card>
   {/if}
 
   <section class="stack">
-    <div class="page-header editor-page__variants-header">
-      <span class="eyebrow">Varianten</span>
+    <div class="section-header editor-page__variants-header">
       <h2>Ergebnisse aus diesem Bild</h2>
       <p>
         Jede neue Variante bleibt als Child-Bild erhalten und kann direkt wieder im Editor geöffnet

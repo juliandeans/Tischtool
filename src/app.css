@@ -93,9 +93,14 @@ img {
 }
 
 .split-layout {
+  align-items: start;
   display: grid;
   gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.split-layout > * {
+  min-width: 0;
 }
 
 .stack {
@@ -120,6 +125,37 @@ img {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.section-header {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.section-header h2,
+.section-header p {
+  margin: 0;
+}
+
+.section-header p {
+  color: var(--color-text-muted);
+  max-width: 70ch;
+}
+
+.page-body--flush {
+  margin-top: calc(-1 * var(--space-3));
+}
+
+.visually-hidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 @media (max-width: 960px) {
