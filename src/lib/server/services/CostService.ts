@@ -1,30 +1,121 @@
+import { desc, eq, sql } from 'drizzle-orm';
+
+import { getDb, isDatabaseConfigured } from '$lib/server/db';
+import { costLogs, generations, projects } from '$lib/server/db/schema';
 import type { CostLogListItem, CostSummary } from '$lib/types/cost';
+
+const toNumber = (value: unknown) => Number(value ?? 0);
+
+export const calculateCostSummary = (input: {
+  logs: Array<{ totalPrice: number; createdAt: string }>;
+  mostExpensiveProjects: Array<{ projectId: string; name: string; total: number }>;
+  totalQuantity: number;
+}) => {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const today = input.logs
+    .filter((log) => new Date(log.createdAt) >= todayStart)
+    .reduce((sum, log) => sum + log.totalPrice, 0);
+  const month = input.logs
+    .filter((log) => new Date(log.createdAt) >= monthStart)
+    .reduce((sum, log) => sum + log.totalPrice, 0);
+  const totalCost = input.logs.reduce((sum, log) => sum + log.totalPrice, 0);
+  const averagePerImage = input.totalQuantity > 0 ? totalCost / input.totalQuantity : 0;
+  const mostExpensiveProject = input.mostExpensiveProjects[0] ?? null;
+
+  return {
+    today: Number(today.toFixed(2)),
+    month: Number(month.toFixed(2)),
+    averagePerImage: Number(averagePerImage.toFixed(2)),
+    mostExpensiveProject: {
+      projectId: mostExpensiveProject?.projectId ?? null,
+      name: mostExpensiveProject?.name ?? null,
+      total: Number((mostExpensiveProject?.total ?? 0).toFixed(2))
+    }
+  } satisfies CostSummary;
+};
 
 export class CostService {
   async getSummary(): Promise<CostSummary> {
-    return {
-      today: 0,
-      month: 0,
-      averagePerImage: 0,
-      mostExpensiveProject: {
-        projectId: null,
-        name: null,
-        total: 0
-      }
-    };
+    if (!isDatabaseConfigured()) {
+      return calculateCostSummary({
+        logs: [],
+        mostExpensiveProjects: [],
+        totalQuantity: 0
+      });
+    }
+
+    const db = getDb();
+    const [logs, quantityRows, projectRows] = await Promise.all([
+      db
+        .select({
+          totalPrice: costLogs.totalPrice,
+          createdAt: costLogs.createdAt
+        })
+        .from(costLogs),
+      db
+        .select({
+          quantity: sql<string>`coalesce(sum(${costLogs.quantity}), 0)`
+        })
+        .from(costLogs),
+      db
+        .select({
+          projectId: projects.id,
+          name: projects.name,
+          total: sql<string>`coalesce(sum(${costLogs.totalPrice}), 0)`
+        })
+        .from(costLogs)
+        .innerJoin(generations, eq(costLogs.generationId, generations.id))
+        .innerJoin(projects, eq(generations.projectId, projects.id))
+        .groupBy(projects.id, projects.name)
+        .orderBy(sql`coalesce(sum(${costLogs.totalPrice}), 0) desc`)
+        .limit(1)
+    ]);
+
+    return calculateCostSummary({
+      logs: logs.map((log) => ({
+        totalPrice: toNumber(log.totalPrice),
+        createdAt: log.createdAt.toISOString()
+      })),
+      mostExpensiveProjects: projectRows.map((row) => ({
+        projectId: row.projectId,
+        name: row.name,
+        total: toNumber(row.total)
+      })),
+      totalQuantity: toNumber(quantityRows[0]?.quantity)
+    });
   }
 
   async getLogs(): Promise<CostLogListItem[]> {
-    return [
-      {
-        id: '50000000-0000-0000-0000-000000000001',
-        projectId: '10000000-0000-0000-0000-000000000001',
-        projectName: 'Esstisch Mueller',
-        model: 'imagen',
-        totalPrice: 0,
-        createdAt: new Date('2026-03-08T12:00:00.000Z').toISOString()
-      }
-    ];
+    if (!isDatabaseConfigured()) {
+      return [];
+    }
+
+    const db = getDb();
+    const rows = await db
+      .select({
+        id: costLogs.id,
+        projectId: projects.id,
+        projectName: projects.name,
+        model: costLogs.model,
+        totalPrice: costLogs.totalPrice,
+        createdAt: costLogs.createdAt
+      })
+      .from(costLogs)
+      .innerJoin(generations, eq(costLogs.generationId, generations.id))
+      .innerJoin(projects, eq(generations.projectId, projects.id))
+      .orderBy(desc(costLogs.createdAt));
+
+    return rows.map((row) => ({
+      id: row.id,
+      projectId: row.projectId,
+      projectName: row.projectName,
+      model: row.model,
+      totalPrice: toNumber(row.totalPrice),
+      createdAt: row.createdAt.toISOString()
+    }));
   }
 }
 

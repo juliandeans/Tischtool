@@ -1,11 +1,26 @@
 <script lang="ts">
   import Card from '$lib/components/ui/Card.svelte';
+  import type { CostSummary } from '$lib/types/cost';
 
-  const items = [
-    { label: 'Heute', value: '—', accent: 'blue' },
-    { label: 'Monat', value: '—', accent: 'yellow' },
-    { label: 'Durchschnitt', value: '—', accent: 'red' },
-    { label: 'Teuerstes Projekt', value: '—', accent: 'blue' }
+  export let summary: CostSummary;
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('de-DE', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(value);
+
+  $: items = [
+    { label: 'Heute', value: formatCurrency(summary.today), accent: 'blue' },
+    { label: 'Monat', value: formatCurrency(summary.month), accent: 'yellow' },
+    { label: 'Durchschnitt', value: formatCurrency(summary.averagePerImage), accent: 'red' },
+    {
+      label: 'Teuerstes Projekt',
+      value: summary.mostExpensiveProject.name
+        ? `${summary.mostExpensiveProject.name} · ${formatCurrency(summary.mostExpensiveProject.total)}`
+        : '—',
+      accent: 'blue'
+    }
   ] as const;
 </script>
 
@@ -27,7 +42,8 @@
 
   strong {
     display: block;
-    font-size: 2rem;
+    font-size: 1.6rem;
+    line-height: 1.2;
     margin-top: 10px;
   }
 </style>

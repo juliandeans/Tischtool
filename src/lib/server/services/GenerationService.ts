@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 
 import { getDb, isDatabaseConfigured } from '$lib/server/db';
-import { generations } from '$lib/server/db/schema';
+import { costLogs, generations } from '$lib/server/db/schema';
 import type { PostGenerationResponse } from '$lib/types/api';
 import type { CreateGenerationInput } from '$lib/types/generation';
 
@@ -52,7 +52,10 @@ export class GenerationService {
     });
 
     const requestSkeleton = vertexImageService.prepareRequest(input, prompt.promptText);
-    const estimate = vertexCostEstimationService.estimateVariants(input.variantsRequested);
+    const estimate = vertexCostEstimationService.estimateVariants(
+      input.mode,
+      input.variantsRequested
+    );
     const db = getDb();
 
     const [generation] = await db
@@ -83,7 +86,9 @@ export class GenerationService {
         variantsReturned: 0,
         usageJson: {
           fakeGeneration: true,
-          requestConfiguredForVertex: requestSkeleton.configured
+          requestConfiguredForVertex: requestSkeleton.configured,
+          estimatedCost: estimate.estimatedCost,
+          unitPrice: estimate.unitPrice
         },
         estimatedCost: String(estimate.estimatedCost),
         actualCost: '0',
@@ -135,13 +140,28 @@ export class GenerationService {
         .set({
           status: 'succeeded',
           variantsReturned: createdImages.length,
+          actualCost: String(Number((createdImages.length * estimate.unitPrice).toFixed(4))),
           usageJson: {
             fakeGeneration: true,
             requestConfiguredForVertex: requestSkeleton.configured,
-            variantsReturned: createdImages.length
+            variantsReturned: createdImages.length,
+            actualCost: Number((createdImages.length * estimate.unitPrice).toFixed(4)),
+            unitPrice: estimate.unitPrice
           }
         })
         .where(eq(generations.id, generation.id));
+
+      await db.insert(costLogs).values({
+        generationId: generation.id,
+        provider: 'dev-fake',
+        model:
+          requestSkeleton.model === 'unconfigured' ? `${input.mode}-fake` : requestSkeleton.model,
+        unitType: estimate.unitType,
+        quantity: String(createdImages.length),
+        unitPrice: String(estimate.unitPrice),
+        totalPrice: String(Number((createdImages.length * estimate.unitPrice).toFixed(4))),
+        currency: estimate.currency
+      });
 
       return {
         generation: {
