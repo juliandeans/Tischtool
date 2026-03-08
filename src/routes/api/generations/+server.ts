@@ -24,10 +24,6 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: 'variantsRequested must be a positive number' }, { status: 400 });
   }
 
-  if (body.mode === 'room_insert') {
-    return json({ error: 'room_insert is not implemented in this phase.' }, { status: 501 });
-  }
-
   try {
     const response = await generationService.createGeneration({
       projectId: body.projectId,

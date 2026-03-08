@@ -28,7 +28,6 @@
     </div>
     <div>
       <strong>Tischtool</strong>
-      <div class="muted">Phase 1 Grundgerüst</div>
     </div>
   </div>
 

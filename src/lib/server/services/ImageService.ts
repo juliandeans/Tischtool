@@ -7,7 +7,7 @@ import { getDb, isDatabaseConfigured } from '$lib/server/db';
 import { images, projects } from '$lib/server/db/schema';
 import { projectService } from '$lib/server/services/ProjectService';
 import { storage } from '$lib/server/storage';
-import type { GenerationMode } from '$lib/types/generation';
+import type { GenerationMode, GenerationPlacement } from '$lib/types/generation';
 import type {
   ImageDetail,
   ImageSummary,
@@ -239,6 +239,63 @@ export class ImageService {
     });
   }
 
+  async listGeneratedImagesByMode(
+    projectId: string,
+    mode: Extract<GenerationMode, 'environment_edit' | 'material_edit' | 'room_insert'>
+  ): Promise<LibraryImageListItem[]> {
+    if (!isDatabaseConfigured()) {
+      return [];
+    }
+
+    const db = getDb();
+    const rows = await db
+      .select({
+        id: images.id,
+        projectId: images.projectId,
+        projectName: projects.name,
+        type: images.type,
+        filePath: images.filePath,
+        mimeType: images.mimeType,
+        width: images.width,
+        height: images.height,
+        createdAt: images.createdAt,
+        settingsSnapshot: images.settingsSnapshot,
+        promptSnapshot: images.promptSnapshot
+      })
+      .from(images)
+      .innerJoin(projects, eq(images.projectId, projects.id))
+      .where(eq(images.projectId, projectId))
+      .orderBy(desc(images.createdAt));
+
+    return rows
+      .filter((row) => {
+        const promptSnapshot = (row.promptSnapshot as Record<string, unknown> | null) ?? null;
+        return row.type === 'generated' && promptSnapshot?.mode === mode;
+      })
+      .map((row) => {
+        const settings = (row.settingsSnapshot as Record<string, unknown> | null) ?? null;
+        const originalFileName =
+          typeof settings?.originalFileName === 'string'
+            ? settings.originalFileName
+            : imageTitleFromPath(row.filePath);
+
+        return {
+          id: row.id,
+          projectId: row.projectId,
+          projectName: row.projectName,
+          title: originalFileName,
+          type: row.type as ImageSummary['type'],
+          createdAt: row.createdAt.toISOString(),
+          mimeType: row.mimeType,
+          width: row.width,
+          height: row.height,
+          thumbnailUrl: `/api/images/${row.id}/download?variant=thumbnail`,
+          downloadUrl: `/api/images/${row.id}/download?download=1`,
+          editUrl: `/editor/${row.id}`
+        };
+      });
+  }
+
   async getEditorImage(id: string) {
     if (!isDatabaseConfigured()) {
       throw new Error('DATABASE_URL is not configured.');
@@ -323,6 +380,7 @@ export class ImageService {
     generationId: string;
     mode: GenerationMode;
     variantIndex: number;
+    placement: GenerationPlacement;
     promptSnapshot: Record<string, unknown>;
     settingsSnapshot: Record<string, unknown>;
   }) {
@@ -366,12 +424,63 @@ export class ImageService {
           ];
     const modulation = modulationVariants[input.variantIndex % modulationVariants.length];
 
-    const baseImage = sharp(sourceBytes)
-      .rotate()
-      .modulate(modulation)
-      .composite([{ input: overlay }]);
-    const metadata = await baseImage.metadata();
-    const generatedBuffer = await baseImage.png().toBuffer();
+    let generatedBuffer: Buffer;
+    let metadata: sharp.Metadata;
+
+    if (input.mode === 'room_insert' && input.placement) {
+      const roomImage = await this.getImage(input.placement.roomImageId);
+      const roomBytes = await storage.readAsset(roomImage.filePath);
+      const furnitureBuffer = await sharp(sourceBytes)
+        .rotate()
+        .resize({
+          width: Math.max(1, input.placement.width),
+          height: Math.max(1, input.placement.height),
+          fit: 'contain',
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        })
+        .modulate(modulation)
+        .png()
+        .toBuffer();
+      const shadowWidth = Math.max(1, Math.round(input.placement.width * 0.68));
+      const shadowHeight = Math.max(1, Math.round(input.placement.height * 0.12));
+      const shadowLeft = Math.max(
+        0,
+        Math.round(input.placement.x + (input.placement.width - shadowWidth) / 2)
+      );
+      const shadowTop = Math.max(
+        0,
+        Math.round(input.placement.y + input.placement.height - shadowHeight / 2)
+      );
+      const shadow = Buffer.from(`
+        <svg width="${shadowWidth}" height="${shadowHeight}" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="${shadowWidth / 2}" cy="${shadowHeight / 2}" rx="${shadowWidth / 2}" ry="${shadowHeight / 2}" fill="rgba(0,0,0,0.14)" />
+        </svg>
+      `);
+
+      const baseImage = sharp(roomBytes)
+        .rotate()
+        .composite([
+          { input: shadow, left: shadowLeft, top: shadowTop },
+          {
+            input: furnitureBuffer,
+            left: Math.round(input.placement.x),
+            top: Math.round(input.placement.y)
+          },
+          { input: overlay }
+        ]);
+
+      metadata = await baseImage.metadata();
+      generatedBuffer = await baseImage.png().toBuffer();
+    } else {
+      const baseImage = sharp(sourceBytes)
+        .rotate()
+        .modulate(modulation)
+        .composite([{ input: overlay }]);
+
+      metadata = await baseImage.metadata();
+      generatedBuffer = await baseImage.png().toBuffer();
+    }
+
     const thumbnailBuffer = await sharp(generatedBuffer)
       .resize({
         width: 480,
@@ -389,6 +498,10 @@ export class ImageService {
       typeof sourceImage.settingsSnapshot?.originalFileName === 'string'
         ? sourceImage.settingsSnapshot.originalFileName
         : imageTitleFromPath(sourceImage.filePath);
+    const roomBaseName =
+      input.mode === 'room_insert' && input.placement
+        ? imageTitleFromPath((await this.getImage(input.placement.roomImageId)).filePath)
+        : null;
 
     const [image] = await db
       .insert(images)
@@ -404,11 +517,22 @@ export class ImageService {
         mimeType: 'image/png',
         width: metadata.width ?? sourceImage.width,
         height: metadata.height ?? sourceImage.height,
+        placementX: input.mode === 'room_insert' && input.placement ? input.placement.x : null,
+        placementY: input.mode === 'room_insert' && input.placement ? input.placement.y : null,
+        placementWidth:
+          input.mode === 'room_insert' && input.placement ? input.placement.width : null,
+        placementHeight:
+          input.mode === 'room_insert' && input.placement ? input.placement.height : null,
         promptSnapshot: input.promptSnapshot,
         settingsSnapshot: {
           ...input.settingsSnapshot,
-          originalFileName: `${originalBaseName}-${modeConfig.suffix}-${input.variantIndex + 1}`,
+          originalFileName:
+            input.mode === 'room_insert' && roomBaseName
+              ? `${originalBaseName}-in-${roomBaseName}-${input.variantIndex + 1}`
+              : `${originalBaseName}-${modeConfig.suffix}-${input.variantIndex + 1}`,
           sourceImageId: sourceImage.id,
+          roomImageId:
+            input.mode === 'room_insert' && input.placement ? input.placement.roomImageId : null,
           fakeGeneration: true
         }
       })

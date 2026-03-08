@@ -17,15 +17,33 @@ export class GenerationService {
       throw new Error('DATABASE_URL is not configured.');
     }
 
-    if (input.mode === 'room_insert') {
-      throw new Error('room_insert is not implemented yet.');
-    }
-
     const normalizedPlacement = roomPlacementService.normalizePlacement(input.placement);
     const sourceImage = await imageService.getImage(input.sourceImageId);
 
     if (sourceImage.projectId !== input.projectId) {
       throw new Error('Source image does not belong to the provided project.');
+    }
+
+    if (input.mode === 'room_insert') {
+      const validation = roomPlacementService.validatePlacement(normalizedPlacement);
+
+      if (!validation.valid) {
+        throw new Error(validation.message || 'Placement is invalid.');
+      }
+
+      if (!normalizedPlacement) {
+        throw new Error('Placement is required for room_insert mode.');
+      }
+
+      if (normalizedPlacement.roomImageId === sourceImage.id) {
+        throw new Error('Room image and furniture image must be different.');
+      }
+
+      const roomImage = await imageService.getImage(normalizedPlacement.roomImageId);
+
+      if (roomImage.projectId !== input.projectId) {
+        throw new Error('Room image does not belong to the provided project.');
+      }
     }
 
     const prompt = promptBuilder.build({
@@ -55,6 +73,7 @@ export class GenerationService {
           instructions: input.instructions,
           targetMaterial: input.targetMaterial,
           surfaceDescription: input.surfaceDescription,
+          placement: normalizedPlacement,
           preserveObject: input.preserveObject,
           preservePerspective: input.preservePerspective,
           variantsRequested: input.variantsRequested,
@@ -89,6 +108,7 @@ export class GenerationService {
             generationId: generation.id,
             mode: input.mode,
             variantIndex: index,
+            placement: normalizedPlacement,
             promptSnapshot: {
               mode: input.mode,
               systemPromptText: prompt.systemPromptText,
@@ -101,6 +121,7 @@ export class GenerationService {
               instructions: input.instructions,
               targetMaterial: input.targetMaterial,
               surfaceDescription: input.surfaceDescription,
+              placement: normalizedPlacement,
               preserveObject: input.preserveObject,
               preservePerspective: input.preservePerspective,
               variantsRequested: input.variantsRequested
