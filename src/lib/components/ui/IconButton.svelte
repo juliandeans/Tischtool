@@ -2,13 +2,39 @@
   export let label = '';
   export let variant: 'neutral' | 'primary' = 'neutral';
   export let disabled = false;
+  export let href: string | null = null;
+  export let download: string | boolean | null = null;
+  export let target: '_self' | '_blank' | '_parent' | '_top' | null = null;
+  export let rel: string | null = null;
 
   $: classes = ['icon-button', `icon-button--${variant}`, $$props.class].filter(Boolean).join(' ');
 </script>
 
-<button {...$$restProps} type="button" class={classes} aria-label={label} title={label} {disabled}>
-  <slot />
-</button>
+{#if href}
+  <a
+    {...$$restProps}
+    class={classes}
+    aria-label={label}
+    title={label}
+    {download}
+    {href}
+    {rel}
+    {target}
+  >
+    <slot />
+  </a>
+{:else}
+  <button
+    {...$$restProps}
+    type="button"
+    class={classes}
+    aria-label={label}
+    title={label}
+    {disabled}
+  >
+    <slot />
+  </button>
+{/if}
 
 <style>
   .icon-button {
@@ -35,6 +61,10 @@
     background: var(--color-blue);
     border-color: var(--color-blue);
     color: #fff;
+  }
+
+  a.icon-button {
+    text-decoration: none;
   }
 
   .icon-button:disabled {

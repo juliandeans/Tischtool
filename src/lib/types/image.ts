@@ -28,9 +28,25 @@ export type ImageDetail = ImageSummary & {
   settingsSnapshot: Record<string, unknown> | null;
 };
 
+export type LibraryImageListItem = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  title: string;
+  type: ImageType;
+  createdAt: string;
+  mimeType: string;
+  width: number | null;
+  height: number | null;
+  thumbnailUrl: string;
+  downloadUrl: string;
+  editUrl: string;
+};
+
 export type UploadImageInput = {
   projectId: string;
   type: ImageType;
   fileName: string;
   mimeType: string;
+  bytes: Uint8Array;
 };

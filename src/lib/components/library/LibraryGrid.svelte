@@ -1,23 +1,33 @@
 <script lang="ts">
-  import Button from '$lib/components/ui/Button.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import ImageCard from '$lib/components/library/ImageCard.svelte';
+  import Spinner from '$lib/components/ui/Spinner.svelte';
 
   type ImageItem = {
+    id: string;
     title: string;
-    meta: string;
+    project: string;
+    time: string;
+    status: string;
+    thumbnailUrl: string;
+    downloadUrl: string;
+    editUrl: string;
   };
 
   export let items: ImageItem[] = [];
+  export let loading = false;
 </script>
 
-{#if items.length === 0}
+{#if loading}
+  <div class="loading">
+    <Spinner />
+    <span class="muted">Bilder werden geladen…</span>
+  </div>
+{:else if items.length === 0}
   <EmptyState
     title="Noch keine Bilder"
-    description="Das responsive Grid ist bereits vorbereitet. Upload, Thumbnail-Erzeugung und Hover-Aktionen werden erst in Phase 3 angebunden."
-  >
-    <Button slot="actions" variant="secondary" disabled>Upload kommt später</Button>
-  </EmptyState>
+    description="Lade ein erstes Bild hoch, damit die Library Thumbnail, Download und Edit zeigen kann."
+  />
 {:else}
   <div class="grid">
     {#each items as item}
@@ -31,5 +41,11 @@
     display: grid;
     gap: var(--space-3);
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .loading {
+    align-items: center;
+    display: flex;
+    gap: var(--space-2);
   }
 </style>

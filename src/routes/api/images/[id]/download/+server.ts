@@ -5,8 +5,12 @@ import type { RequestHandler } from './$types';
 
 import { imageService } from '$lib/server/services/ImageService';
 
-export const GET: RequestHandler = async ({ params }) => {
-  const download = await imageService.getDownloadDescriptor(params.id);
+export const GET: RequestHandler = async ({ params, url }) => {
+  const variant = (url.searchParams.get('variant') === 'thumbnail' ? 'thumbnail' : 'original') as
+    | 'original'
+    | 'thumbnail';
+  const shouldDownload = url.searchParams.get('download') === '1';
+  const download = await imageService.getDownloadDescriptor(params.id, variant);
 
   if (!download.exists || download.driver !== 'local') {
     throw error(501, 'Download skeleton exists, but no stored file is available yet.');
@@ -16,7 +20,10 @@ export const GET: RequestHandler = async ({ params }) => {
 
   return new Response(fileBuffer, {
     headers: {
-      'content-type': 'application/octet-stream'
+      'content-disposition': shouldDownload
+        ? `attachment; filename="${download.fileName}"`
+        : `inline; filename="${download.fileName}"`,
+      'content-type': download.mimeType
     }
   });
 };

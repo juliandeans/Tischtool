@@ -11,6 +11,11 @@ export type ProjectDetail = ProjectSummary & {
   createdAt: string;
 };
 
+export type ProjectListItem = ProjectSummary & {
+  imageCount: number;
+  coverThumbnailUrl: string | null;
+};
+
 export type CreateProjectInput = {
   name: string;
   description: string | null;

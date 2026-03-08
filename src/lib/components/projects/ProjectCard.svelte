@@ -4,14 +4,21 @@
   export let title = '';
   export let meta = '';
   export let href = '/projects';
+  export let imageCount = 0;
+  export let coverThumbnailUrl: string | null = null;
 </script>
 
 <a class="project-card" {href}>
   <Card padded={false}>
-    <div class="project-card__cover" aria-hidden="true"></div>
+    {#if coverThumbnailUrl}
+      <img class="project-card__cover-image" src={coverThumbnailUrl} alt="" />
+    {:else}
+      <div class="project-card__cover" aria-hidden="true"></div>
+    {/if}
     <div class="project-card__body">
       <h3>{title}</h3>
       <p>{meta}</p>
+      <span class="project-card__count">{imageCount} Bilder</span>
     </div>
   </Card>
 </a>
@@ -28,6 +35,14 @@
     min-height: 148px;
   }
 
+  .project-card__cover-image {
+    aspect-ratio: 4 / 3;
+    background: var(--color-surface-muted);
+    display: block;
+    object-fit: cover;
+    width: 100%;
+  }
+
   .project-card__body {
     display: grid;
     gap: 8px;
@@ -41,5 +56,11 @@
 
   p {
     color: var(--color-text-muted);
+  }
+
+  .project-card__count {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
   }
 </style>

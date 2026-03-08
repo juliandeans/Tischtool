@@ -18,12 +18,21 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: 'name is required' }, { status: 400 });
   }
 
-  const project = await projectService.createProject({
-    name: body.name,
-    description: body.description ?? null
-  });
+  try {
+    const project = await projectService.createProject({
+      name: body.name,
+      description: body.description ?? null
+    });
 
-  const response: PostProjectResponse = { project };
+    const response: PostProjectResponse = { project };
 
-  return json(response, { status: 201 });
+    return json(response, { status: 201 });
+  } catch (error) {
+    return json(
+      {
+        error: error instanceof Error ? error.message : 'Project creation failed.'
+      },
+      { status: 500 }
+    );
+  }
 };

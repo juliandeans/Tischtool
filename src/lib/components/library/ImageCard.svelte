@@ -1,25 +1,37 @@
 <script lang="ts">
+  import { imageAlt } from '$lib/utils/image';
   import Card from '$lib/components/ui/Card.svelte';
   import IconButton from '$lib/components/ui/IconButton.svelte';
 
   export let title = '';
-  export let meta = '';
+  export let project = '';
+  export let time = '';
+  export let status = '';
+  export let thumbnailUrl = '';
+  export let downloadUrl = '';
+  export let editUrl = '';
 </script>
 
 <div class="image-card">
   <Card padded={false}>
-    <div class="image-card__preview" aria-hidden="true"></div>
+    <img class="image-card__preview" src={thumbnailUrl} alt={imageAlt(title)} loading="lazy" />
     <div class="image-card__overlay">
-      <IconButton label="Download" disabled>
+      <IconButton href={downloadUrl} label="Download" download variant="neutral">
         <span aria-hidden="true">↓</span>
       </IconButton>
-      <IconButton label="Edit" variant="primary" disabled>
+      <IconButton href={editUrl} label="Edit" variant="primary">
         <span aria-hidden="true">✎</span>
       </IconButton>
     </div>
     <div class="image-card__body">
       <h3>{title}</h3>
-      <p>{meta}</p>
+      <p>{project}</p>
+      <div class="image-card__meta">
+        <span>{time}</span>
+        {#if status}
+          <span>{status}</span>
+        {/if}
+      </div>
     </div>
   </Card>
 </div>
@@ -32,9 +44,9 @@
 
   .image-card__preview {
     aspect-ratio: 4 / 3;
-    background:
-      linear-gradient(135deg, rgba(0, 87, 184, 0.1), rgba(227, 58, 44, 0.12)),
-      var(--color-surface-muted);
+    background: var(--color-surface-muted);
+    object-fit: cover;
+    width: 100%;
   }
 
   .image-card__overlay {
@@ -64,5 +76,13 @@
 
   p {
     color: var(--color-text-muted);
+  }
+
+  .image-card__meta {
+    color: var(--color-text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    gap: 10px;
   }
 </style>
