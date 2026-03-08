@@ -17,12 +17,19 @@ export class PromptBuilder {
     return {
       mode: input.mode,
       promptText: builder(input),
-      systemPromptText:
-        'Preserve the main furniture object. Keep the result plausible, consistent and production-ready.',
+      systemPromptText: [
+        'Das Hauptobjekt muss erhalten bleiben.',
+        'Erhalte Perspektive, Maßstab und Konstruktion.',
+        'Ändere primär die Umgebung.',
+        'Füge keine zusätzlichen Möbel ohne ausdrückliche Anweisung hinzu.'
+      ].join('\n'),
       promptFragments: {
         stylePreset: input.stylePreset,
         lightPreset: input.lightPreset,
-        instructions: input.instructions
+        instructions: input.instructions,
+        preserveObject: input.preserveObject,
+        preservePerspective: input.preservePerspective,
+        outputGoal: `${input.variantsRequested} Varianten`
       }
     };
   }

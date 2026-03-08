@@ -164,6 +164,21 @@ export class ProjectService {
       })
       .where(eq(projects.id, projectId));
   }
+
+  async touchProject(projectId: string) {
+    if (!isDatabaseConfigured()) {
+      return;
+    }
+
+    const db = getDb();
+
+    await db
+      .update(projects)
+      .set({
+        updatedAt: new Date()
+      })
+      .where(eq(projects.id, projectId));
+  }
 }
 
 export const projectService = new ProjectService();

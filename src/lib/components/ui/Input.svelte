@@ -6,6 +6,8 @@
   export let value = '';
   export let type = 'text';
   export let placeholder = '';
+  export let multiline = false;
+  export let rows = 4;
 
   $: describedBy = [description ? `${id}-description` : '', error ? `${id}-error` : '']
     .filter(Boolean)
@@ -19,16 +21,29 @@
   {#if description}
     <span class="field__description" id={`${id}-description`}>{description}</span>
   {/if}
-  <input
-    {...$$restProps}
-    bind:value
-    aria-describedby={describedBy || undefined}
-    aria-invalid={error ? 'true' : 'false'}
-    class:error={Boolean(error)}
-    {id}
-    {placeholder}
-    {type}
-  />
+  {#if multiline}
+    <textarea
+      {...$$restProps}
+      bind:value
+      aria-describedby={describedBy || undefined}
+      aria-invalid={error ? 'true' : 'false'}
+      class:error={Boolean(error)}
+      {id}
+      {placeholder}
+      {rows}
+    ></textarea>
+  {:else}
+    <input
+      {...$$restProps}
+      bind:value
+      aria-describedby={describedBy || undefined}
+      aria-invalid={error ? 'true' : 'false'}
+      class:error={Boolean(error)}
+      {id}
+      {placeholder}
+      {type}
+    />
+  {/if}
   {#if error}
     <span class="field__error" id={`${id}-error`}>{error}</span>
   {/if}
@@ -50,7 +65,8 @@
     font-size: 0.9rem;
   }
 
-  input {
+  input,
+  textarea {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-input);
@@ -60,11 +76,19 @@
     padding: 0 14px;
   }
 
-  input:focus {
+  textarea {
+    min-height: 120px;
+    padding: 12px 14px;
+    resize: vertical;
+  }
+
+  input:focus,
+  textarea:focus {
     border-color: var(--color-blue);
   }
 
-  input.error {
+  input.error,
+  textarea.error {
     border-color: var(--color-red);
   }
 
