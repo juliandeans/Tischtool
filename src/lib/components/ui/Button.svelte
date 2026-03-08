@@ -4,20 +4,43 @@
   export let type: 'button' | 'submit' | 'reset' = 'button';
   export let disabled = false;
   export let loading = false;
+  export let href: string | null = null;
+  export let download: string | boolean | null = null;
+  export let target: '_self' | '_blank' | '_parent' | '_top' | null = null;
+  export let rel: string | null = null;
 
   $: classes = ['button', `button--${variant}`, `button--${size}`, $$props.class]
     .filter(Boolean)
     .join(' ');
 </script>
 
-<button {...$$restProps} {type} class={classes} disabled={disabled || loading}>
-  {#if loading}
-    <span class="button__spinner" aria-hidden="true"></span>
-    <span>Lädt...</span>
-  {:else}
-    <slot />
-  {/if}
-</button>
+{#if href}
+  <a
+    {...$$restProps}
+    aria-disabled={disabled || loading ? 'true' : undefined}
+    class={classes}
+    {download}
+    {href}
+    {rel}
+    {target}
+  >
+    {#if loading}
+      <span class="button__spinner" aria-hidden="true"></span>
+      <span>Lädt...</span>
+    {:else}
+      <slot />
+    {/if}
+  </a>
+{:else}
+  <button {...$$restProps} {type} class={classes} disabled={disabled || loading}>
+    {#if loading}
+      <span class="button__spinner" aria-hidden="true"></span>
+      <span>Lädt...</span>
+    {:else}
+      <slot />
+    {/if}
+  </button>
+{/if}
 
 <style>
   .button {
@@ -31,19 +54,31 @@
     gap: 10px;
     justify-content: center;
     font-weight: 600;
+    text-decoration: none;
     transition:
       transform 120ms ease,
       border-color 120ms ease,
       background-color 120ms ease;
   }
 
-  .button:hover:enabled {
+  .button:hover:not(:disabled):not([aria-disabled='true']) {
     transform: translateY(-1px);
+  }
+
+  .button:focus-visible {
+    outline: 2px solid var(--color-blue);
+    outline-offset: 2px;
   }
 
   .button:disabled {
     cursor: not-allowed;
     opacity: 0.55;
+  }
+
+  a.button[aria-disabled='true'] {
+    cursor: not-allowed;
+    opacity: 0.55;
+    pointer-events: none;
   }
 
   .button--sm {

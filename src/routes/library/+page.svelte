@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invalidateAll } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   import { navigating } from '$app/stores';
 
   import Button from '$lib/components/ui/Button.svelte';
@@ -15,6 +15,7 @@
   let fileInput: HTMLInputElement | null = null;
   let isUploading = false;
   let uploadError = '';
+  let uploadSuccess = '';
 
   $: projectOptions = [
     { value: '', label: 'Projekt wählen' },
@@ -24,6 +25,7 @@
   const submitUpload = async (event: SubmitEvent) => {
     event.preventDefault();
     uploadError = '';
+    uploadSuccess = '';
 
     if (!projectId || !fileInput?.files?.[0]) {
       uploadError = 'Bitte Projekt und Bild auswählen.';
@@ -54,6 +56,7 @@
       fileInput.value = '';
     }
 
+    uploadSuccess = 'Bild wurde gespeichert und ist jetzt in der Library sichtbar.';
     await invalidateAll();
   };
 </script>
@@ -75,9 +78,9 @@
         description="Uploads brauchen ein Projekt. Lege erst ein Projekt an oder kehre danach zur Library zurück."
         accent="yellow"
       >
-        <a slot="actions" href="/projects">
-          <Button type="button" variant="primary">Projekt anlegen</Button>
-        </a>
+        <Button slot="actions" href="/projects" type="button" variant="primary">
+          Projekt anlegen
+        </Button>
       </EmptyState>
     {:else}
       <form class="upload-form" on:submit={submitUpload}>
@@ -86,6 +89,7 @@
           id="upload-project"
           label="Projekt"
           options={projectOptions}
+          on:change={() => goto(projectId ? `/library?projectId=${projectId}` : '/library')}
         />
         <div class="upload-form__field">
           <span class="field-label">Datei</span>
@@ -94,11 +98,12 @@
         {#if uploadError}
           <p class="upload-form__error">{uploadError}</p>
         {/if}
+        {#if uploadSuccess}
+          <p class="upload-form__success">{uploadSuccess}</p>
+        {/if}
         <div class="cluster">
           <Button type="submit" loading={isUploading} variant="primary">Bild hochladen</Button>
-          <a href="/projects">
-            <Button type="button">Projektverwaltung</Button>
-          </a>
+          <Button href="/projects" type="button">Projektverwaltung</Button>
         </div>
       </form>
     {/if}
@@ -146,6 +151,12 @@
 
   .upload-form__error {
     color: var(--color-red);
+    margin: 0;
+  }
+
+  .upload-form__success {
+    color: var(--color-blue);
+    font-weight: 600;
     margin: 0;
   }
 </style>

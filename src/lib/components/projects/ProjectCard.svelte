@@ -26,6 +26,16 @@
 <style>
   .project-card {
     display: block;
+    height: 100%;
+  }
+
+  .project-card :global(section) {
+    height: 100%;
+  }
+
+  .project-card:focus-visible {
+    outline: 2px solid var(--color-blue);
+    outline-offset: 2px;
   }
 
   .project-card__cover {
@@ -46,6 +56,7 @@
   .project-card__body {
     display: grid;
     gap: 8px;
+    min-height: 120px;
     padding: var(--space-3);
   }
 

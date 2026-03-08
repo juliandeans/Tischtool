@@ -78,9 +78,7 @@
     >
       {showCreateForm ? 'Formular schließen' : 'Neues Projekt'}
     </Button>
-    <a href="/library">
-      <Button type="button">Zur Library</Button>
-    </a>
+    <Button href="/library" type="button">Zur Library</Button>
   </div>
 
   {#if showCreateForm}

@@ -186,52 +186,90 @@
     description="Lege zuerst ein Projekt an. Danach kannst du Raumfotos hochladen und Möbelbilder zuordnen."
     accent="red"
   >
-    <a slot="actions" href="/projects">
-      <Button type="button" variant="primary">Projekt anlegen</Button>
-    </a>
+    <Button slot="actions" href="/projects" type="button" variant="primary">Projekt anlegen</Button>
   </EmptyState>
 {:else}
-  <div class="split-layout">
-    <RoomPlacementCanvas
-      roomImageUrl={roomImage?.downloadUrl ?? ''}
-      roomImageTitle={roomImage?.title ?? ''}
-      imageWidth={roomImage?.width ?? null}
-      imageHeight={roomImage?.height ?? null}
-      {placement}
-      on:change={(event) => {
-        placement = event.detail;
-      }}
-      on:reset={() => {
-        placement = null;
-      }}
-    />
-    <RoomInsertSidebar
-      bind:projectId={selectedProjectId}
-      bind:roomImageId={selectedRoomImageId}
-      bind:furnitureImageId={selectedFurnitureImageId}
-      bind:stylePreset
-      bind:lightPreset
-      bind:variantsRequested
-      bind:instructions
-      error={generationError}
-      {uploadError}
-      success={generationSuccess}
-      {uploadSuccess}
-      uploadingRoomPhoto={isUploadingRoomPhoto}
-      furnitureImageLabel={furnitureImage?.title ?? ''}
-      {furnitureImageOptions}
-      lightOptions={data.lightOptions}
-      {placement}
-      {projectOptions}
-      roomImageLabel={roomImage?.title ?? ''}
-      {roomImageOptions}
-      styleOptions={data.styleOptions}
-      submitting={isGenerating}
-      on:generate={handleGenerate}
-      on:projectchange={handleProjectChange}
-      on:uploadroom={handleRoomUpload}
-    />
-  </div>
+  {#if data.images.length === 0}
+    <div class="stack">
+      <EmptyState
+        title="Noch keine Bilder im Projekt"
+        description="Für room_insert brauchst du mindestens ein Raumfoto und ein Möbelbild im gewählten Projekt."
+        accent="yellow"
+      >
+        <Button slot="actions" href={`/library?projectId=${selectedProjectId}`} variant="primary">
+          Bilder hochladen
+        </Button>
+      </EmptyState>
+      <RoomInsertSidebar
+        bind:projectId={selectedProjectId}
+        bind:roomImageId={selectedRoomImageId}
+        bind:furnitureImageId={selectedFurnitureImageId}
+        bind:stylePreset
+        bind:lightPreset
+        bind:variantsRequested
+        bind:instructions
+        error={generationError}
+        {uploadError}
+        success={generationSuccess}
+        {uploadSuccess}
+        uploadingRoomPhoto={isUploadingRoomPhoto}
+        furnitureImageLabel={furnitureImage?.title ?? ''}
+        {furnitureImageOptions}
+        lightOptions={data.lightOptions}
+        {placement}
+        {projectOptions}
+        roomImageLabel={roomImage?.title ?? ''}
+        {roomImageOptions}
+        styleOptions={data.styleOptions}
+        submitting={isGenerating}
+        on:generate={handleGenerate}
+        on:projectchange={handleProjectChange}
+        on:uploadroom={handleRoomUpload}
+      />
+    </div>
+  {:else}
+    <div class="split-layout">
+      <RoomPlacementCanvas
+        roomImageUrl={roomImage?.downloadUrl ?? ''}
+        roomImageTitle={roomImage?.title ?? ''}
+        imageWidth={roomImage?.width ?? null}
+        imageHeight={roomImage?.height ?? null}
+        {placement}
+        on:change={(event) => {
+          placement = event.detail;
+        }}
+        on:reset={() => {
+          placement = null;
+        }}
+      />
+      <RoomInsertSidebar
+        bind:projectId={selectedProjectId}
+        bind:roomImageId={selectedRoomImageId}
+        bind:furnitureImageId={selectedFurnitureImageId}
+        bind:stylePreset
+        bind:lightPreset
+        bind:variantsRequested
+        bind:instructions
+        error={generationError}
+        {uploadError}
+        success={generationSuccess}
+        {uploadSuccess}
+        uploadingRoomPhoto={isUploadingRoomPhoto}
+        furnitureImageLabel={furnitureImage?.title ?? ''}
+        {furnitureImageOptions}
+        lightOptions={data.lightOptions}
+        {placement}
+        {projectOptions}
+        roomImageLabel={roomImage?.title ?? ''}
+        {roomImageOptions}
+        styleOptions={data.styleOptions}
+        submitting={isGenerating}
+        on:generate={handleGenerate}
+        on:projectchange={handleProjectChange}
+        on:uploadroom={handleRoomUpload}
+      />
+    </div>
+  {/if}
 
   <div class="stack room-insert__extras">
     {#if data.images.length < 2}

@@ -115,13 +115,10 @@
       </div>
       <div class="cluster">
         {#if data.parentImage}
-          <a href={data.parentImage.editUrl}>
-            <Button>Parent öffnen</Button>
-          </a>
+          <Button href={data.parentImage.editUrl}>Parent öffnen</Button>
         {/if}
-        <a href={data.image.downloadUrl}>
-          <Button>Original herunterladen</Button>
-        </a>
+        <Button href={`/projects/${data.project.id}`}>Projekt öffnen</Button>
+        <Button href={data.image.downloadUrl}>Original herunterladen</Button>
         <span class="muted">Aktuelles Bild: {toShortDate(data.image.createdAt)}</span>
       </div>
     </div>

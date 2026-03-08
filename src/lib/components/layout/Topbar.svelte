@@ -4,32 +4,38 @@
 
   const labels: Record<string, { title: string; subtitle: string }> = {
     '/': {
-      title: 'Grundgerüst',
-      subtitle: 'SvelteKit-Projektbasis, Navigation und Designsystem für Phase 1.'
+      title: 'Möbel Visualisierung',
+      subtitle:
+        'Ruhiger MVP für Projekte, Library, Editor, Room Insert und nachvollziehbare Dev-Kosten.'
     },
     '/projects': {
       title: 'Projects',
-      subtitle: 'Projektliste, Cover, Meta und Leerzustände kommen hier zusammen.'
+      subtitle: 'Projektliste, Anlage und direkte Einstiege in Upload- und Bildflows.'
     },
     '/library': {
       title: 'Library',
-      subtitle: 'Das Bildraster bleibt in Phase 1 bewusst leer, aber strukturell bereit.'
+      subtitle: 'Bildraster mit Upload, Download, Edit und Projektfilter.'
+    },
+    '/editor': {
+      title: 'Editor',
+      subtitle:
+        'Öffne ein bestehendes Bild aus der Library oder springe direkt in die letzte Variante.'
     },
     '/room-insert': {
       title: 'Room Insert',
-      subtitle: 'Platzierungs-Canvas und rechte Steuerfläche als visuelles Grundgerüst.'
+      subtitle: 'Eigenständiger MVP-Flow für Raumfoto, Zielregion und Varianten.'
     },
     '/costs': {
       title: 'Costs',
-      subtitle: 'Zusammenfassung und Tabelle sind layoutseitig vorbereitet.'
+      subtitle: 'Zusammenfassung und Log-Tabelle für nachvollziehbare Dev-Kosten.'
     },
     '/presets': {
       title: 'Presets',
-      subtitle: 'Stil- und Licht-Presets werden hier später ausgebaut.'
+      subtitle: 'Aktuell als vorbereitete Oberfläche für spätere Preset-Verwaltung.'
     },
     '/settings': {
       title: 'Settings',
-      subtitle: 'Lokale Konfiguration und Backend-relevante Werte bleiben Platzhalter.'
+      subtitle: 'Dokumentierte lokale Konfiguration als read-first Platzhalterfläche.'
     }
   };
 
@@ -58,7 +64,7 @@
   <div class="topbar__status">
     <span class="topbar__chip topbar__chip--blue">SvelteKit</span>
     <span class="topbar__chip topbar__chip--yellow">TypeScript</span>
-    <span class="topbar__chip topbar__chip--red">Phase 1</span>
+    <span class="topbar__chip topbar__chip--red">MVP</span>
   </div>
 </header>
 

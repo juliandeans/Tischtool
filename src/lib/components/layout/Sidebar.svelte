@@ -4,7 +4,7 @@
   const navigation = [
     { href: '/projects', label: 'Projects', accent: 'blue' },
     { href: '/library', label: 'Library', accent: 'yellow' },
-    { href: '/editor/demo-image', label: 'Editor', accent: 'blue' },
+    { href: '/editor', label: 'Editor', accent: 'blue' },
     { href: '/room-insert', label: 'Room Insert', accent: 'red' },
     { href: '/costs', label: 'Costs', accent: 'yellow' },
     { href: '/presets', label: 'Presets', accent: 'blue' },
@@ -14,8 +14,8 @@
   const isActive = (href: string, pathname: string) =>
     href === '/projects'
       ? pathname === '/projects' || pathname.startsWith('/projects/')
-      : href === '/editor/demo-image'
-        ? pathname.startsWith('/editor/')
+      : href === '/editor'
+        ? pathname === '/editor' || pathname.startsWith('/editor/')
         : pathname === href;
 </script>
 
@@ -34,6 +34,7 @@
   <nav class="sidebar__nav" aria-label="Hauptnavigation">
     {#each navigation as item}
       <a
+        aria-current={isActive(item.href, $page.url.pathname) ? 'page' : undefined}
         class:active={isActive(item.href, $page.url.pathname)}
         class={`sidebar__link sidebar__link--${item.accent}`}
         href={item.href}
@@ -109,6 +110,11 @@
 
   .sidebar__link:hover {
     transform: translateX(2px);
+  }
+
+  .sidebar__link:focus-visible {
+    outline: 2px solid var(--color-blue);
+    outline-offset: 2px;
   }
 
   .sidebar__link.active {

@@ -38,8 +38,13 @@
 
 <style>
   .image-card {
+    height: 100%;
     overflow: hidden;
     position: relative;
+  }
+
+  .image-card :global(section) {
+    height: 100%;
   }
 
   .image-card__preview {
@@ -63,9 +68,14 @@
     opacity: 1;
   }
 
+  .image-card:focus-within .image-card__overlay {
+    opacity: 1;
+  }
+
   .image-card__body {
     display: grid;
     gap: 8px;
+    min-height: 112px;
     padding: var(--space-3);
   }
 

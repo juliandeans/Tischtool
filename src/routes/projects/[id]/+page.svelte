@@ -11,8 +11,8 @@
   <span class="eyebrow">Projects</span>
   <h1>{data.project.name}</h1>
   <p>
-    Projektkontext und zuletzt hochgeladene Bilder stehen hier direkt bereit. Der eigentliche
-    Generierungsflow bleibt bewusst noch außen vor.
+    Projektkontext, Bilder und direkte Einstiege in Upload, Editor und Room Insert sind hier
+    gebündelt.
   </p>
 </div>
 
@@ -20,15 +20,19 @@
   <Card accent="blue">
     <div class="stack">
       <div class="muted">Projekt-ID</div>
-      <strong>{data.id}</strong>
+      <strong>{data.project.id}</strong>
+      {#if data.project.description}
+        <div class="muted">{data.project.description}</div>
+      {/if}
       <div class="muted">Zuletzt geändert: {toShortDate(data.project.updatedAt)}</div>
       <div class="cluster">
-        <a href="/projects">
-          <Button>Zurück zur Liste</Button>
-        </a>
-        <a href="/library">
-          <Button variant="primary">Zur Library</Button>
-        </a>
+        <Button href="/projects">Zurück zur Liste</Button>
+        <Button href={`/library?projectId=${data.project.id}`} variant="primary">Zur Library</Button
+        >
+        <Button href={`/room-insert?projectId=${data.project.id}`}>Room Insert</Button>
+        {#if data.images[0]}
+          <Button href={data.images[0].editUrl}>Letztes Bild im Editor</Button>
+        {/if}
       </div>
     </div>
   </Card>
@@ -44,5 +48,6 @@
       downloadUrl: image.downloadUrl,
       editUrl: image.editUrl
     }))}
+    loading={false}
   />
 </div>
