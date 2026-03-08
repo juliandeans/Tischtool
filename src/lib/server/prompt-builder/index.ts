@@ -1,6 +1,7 @@
 import type {
   CreateGenerationInput,
   GenerationMode,
+  GenerationRuntimeOptions,
   PromptDebugPreview,
   PromptInstructionDebug,
   PromptPresetEffect,
@@ -77,7 +78,7 @@ const getModeParameters = (input: CreateGenerationInput) => {
 };
 
 export class PromptBuilder {
-  build(input: CreateGenerationInput) {
+  build(input: CreateGenerationInput, runtimeOptions?: GenerationRuntimeOptions) {
     const builder = MODE_BUILDERS[input.mode];
     const instructionDebug = normalizeUserInstructions(input.instructions);
     const promptText = builder(input, instructionDebug);
@@ -85,7 +86,7 @@ export class PromptBuilder {
     const protectionRules = getModeProtectionRules(input);
     const modeParameters = getModeParameters(input);
     const systemPromptText = COMMON_SYSTEM_LINES.join('\n');
-    const requestPreview = vertexImageService.prepareRequest(input, promptText);
+    const requestPreview = vertexImageService.prepareRequest(input, promptText, runtimeOptions);
     const promptDebug: PromptDebugPreview = {
       mode: input.mode,
       modeLabel: MODE_LABELS[input.mode],

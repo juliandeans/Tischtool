@@ -16,5 +16,15 @@ export const serverConfig = {
   PUBLIC_APP_NAME: publicEnv.PUBLIC_APP_NAME || 'Moebel Visualisierung'
 } as const;
 
+export const getVertexRuntimeConfig = () => ({
+  projectId: serverConfig.VERTEX_PROJECT_ID,
+  location: serverConfig.VERTEX_LOCATION,
+  model: serverConfig.VERTEX_MODEL,
+  credentialsPath: serverConfig.GOOGLE_APPLICATION_CREDENTIALS,
+  configured: Boolean(
+    serverConfig.VERTEX_PROJECT_ID && serverConfig.VERTEX_LOCATION && serverConfig.VERTEX_MODEL
+  )
+});
+
 export const isStorageDriver = (value: string): value is StorageDriver =>
   value === 'local' || value === 's3';

@@ -22,6 +22,11 @@ export type GenerationPlacement = {
 
 export type GenerationProtectionRules = Partial<Record<ProtectionRuleKey, boolean>>;
 
+export type GenerationRuntimeOptions = {
+  providerPreference?: 'real' | 'fake';
+  providerDebugEnabled?: boolean;
+};
+
 export type CreateGenerationInput = {
   projectId: string;
   sourceImageId: string;
@@ -79,11 +84,7 @@ export type PromptDebugPreview = {
     sourceImageId: string;
     variantsRequested: number;
     placement: GenerationPlacement;
-    payload: {
-      mode: GenerationMode;
-      promptText: string;
-      variantsRequested: number;
-    };
+    payload: Record<string, unknown>;
   };
 };
 

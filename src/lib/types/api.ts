@@ -7,6 +7,7 @@ import type {
 import type { ImageDetail, ImageSummary } from '$lib/types/image';
 import type { PresetSummary } from '$lib/types/preset';
 import type { CreateProjectInput, ProjectDetail, ProjectSummary } from '$lib/types/project';
+import type { ProviderSettingsSnapshot, ProviderStatusSnapshot } from '$lib/types/settings';
 
 export type ApiErrorPayload = {
   error: string;
@@ -61,4 +62,9 @@ export type GetCostLogsResponse = {
 
 export type GetPresetsResponse = {
   presets: PresetSummary[];
+};
+
+export type GetProviderStatusResponse = {
+  settings: ProviderSettingsSnapshot;
+  status: ProviderStatusSnapshot;
 };

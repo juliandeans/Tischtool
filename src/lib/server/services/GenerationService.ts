@@ -2,26 +2,47 @@ import { eq } from 'drizzle-orm';
 
 import { getDb, isDatabaseConfigured } from '$lib/server/db';
 import { costLogs, generations } from '$lib/server/db/schema';
-import type { PostGenerationResponse } from '$lib/types/api';
-import type { CreateGenerationInput } from '$lib/types/generation';
-
 import { promptBuilder } from '$lib/server/prompt-builder';
 import { imageService } from '$lib/server/services/ImageService';
 import { roomPlacementService } from '$lib/server/services/RoomPlacementService';
+import { storage } from '$lib/server/storage';
+import type { PostGenerationResponse } from '$lib/types/api';
+import type { CreateGenerationInput, GenerationRuntimeOptions } from '$lib/types/generation';
 import { vertexCostEstimationService } from '$lib/server/vertex/cost-estimation';
-import { vertexImageService } from '$lib/server/vertex/image';
+import {
+  VertexProviderError,
+  type VertexGenerationResult,
+  vertexImageService
+} from '$lib/server/vertex/image';
+
+type PromptBuildResult = ReturnType<typeof promptBuilder.build>;
+
+type PersistedImage = Awaited<ReturnType<typeof imageService.createGeneratedVariant>>;
+
+type GenerationExecutionResult = {
+  provider: 'vertex' | 'dev-fake';
+  model: string;
+  images: PersistedImage[];
+  usageJson: Record<string, unknown>;
+};
 
 export class GenerationService {
-  previewGeneration(input: CreateGenerationInput) {
+  previewGeneration(input: CreateGenerationInput, runtimeOptions?: GenerationRuntimeOptions) {
     const normalizedPlacement = roomPlacementService.normalizePlacement(input.placement);
 
-    return promptBuilder.build({
-      ...input,
-      placement: normalizedPlacement
-    }).promptDebug;
+    return promptBuilder.build(
+      {
+        ...input,
+        placement: normalizedPlacement
+      },
+      runtimeOptions
+    ).promptDebug;
   }
 
-  async createGeneration(input: CreateGenerationInput): Promise<PostGenerationResponse> {
+  async createGeneration(
+    input: CreateGenerationInput,
+    runtimeOptions?: GenerationRuntimeOptions
+  ): Promise<PostGenerationResponse> {
     if (!isDatabaseConfigured()) {
       throw new Error('DATABASE_URL is not configured.');
     }
@@ -55,11 +76,26 @@ export class GenerationService {
       }
     }
 
-    const prompt = promptBuilder.build({
-      ...input,
-      placement: normalizedPlacement
-    });
-    const requestSkeleton = vertexImageService.prepareRequest(input, prompt.promptText);
+    const prompt = promptBuilder.build(
+      {
+        ...input,
+        placement: normalizedPlacement
+      },
+      runtimeOptions
+    );
+    const executionPlan = vertexImageService.getExecutionPlan(
+      input.mode,
+      input.variantsRequested,
+      runtimeOptions
+    );
+    const requestSkeleton = vertexImageService.prepareRequest(
+      {
+        ...input,
+        placement: normalizedPlacement
+      },
+      prompt.promptText,
+      runtimeOptions
+    );
     const estimate = vertexCostEstimationService.estimateVariants(
       input.mode,
       input.variantsRequested
@@ -72,9 +108,8 @@ export class GenerationService {
         projectId: input.projectId,
         userId: sourceImage.userId,
         sourceImageId: sourceImage.id,
-        provider: 'dev-fake',
-        model:
-          requestSkeleton.model === 'unconfigured' ? `${input.mode}-fake` : requestSkeleton.model,
+        provider: executionPlan.provider,
+        model: executionPlan.model,
         mode: input.mode,
         promptText: prompt.promptText,
         systemPromptText: prompt.systemPromptText,
@@ -89,15 +124,22 @@ export class GenerationService {
           preservePerspective: input.preservePerspective,
           protectionRules: input.protectionRules ?? null,
           variantsRequested: input.variantsRequested,
-          fakeGeneration: true
+          requestedProvider: executionPlan.useVertex ? 'vertex' : 'dev-fake',
+          vertexFallbackReason: executionPlan.reason,
+          providerPreference: runtimeOptions?.providerPreference ?? 'real',
+          providerDebugEnabled: runtimeOptions?.providerDebugEnabled ?? false,
+          // Real Vertex is only enabled for environment_edit in this phase.
+          realVertexEligible: executionPlan.useVertex
         },
         variantsRequested: input.variantsRequested,
         variantsReturned: 0,
         usageJson: {
-          fakeGeneration: true,
+          fakeGeneration: !executionPlan.useVertex,
           requestConfiguredForVertex: requestSkeleton.configured,
           estimatedCost: estimate.estimatedCost,
-          unitPrice: estimate.unitPrice
+          unitPrice: estimate.unitPrice,
+          vertexRequested: executionPlan.useVertex,
+          vertexFallbackReason: executionPlan.reason
         },
         estimatedCost: String(estimate.estimatedCost),
         actualCost: '0',
@@ -115,48 +157,42 @@ export class GenerationService {
       .where(eq(generations.id, generation.id));
 
     try {
-      const createdImages = await Promise.all(
-        Array.from({ length: input.variantsRequested }, (_, index) =>
-          imageService.createGeneratedVariant({
-            sourceImageId: sourceImage.id,
+      const executionResult = executionPlan.useVertex
+        ? await this.executeWithVertexFallback({
             generationId: generation.id,
-            mode: input.mode,
-            variantIndex: index,
-            placement: normalizedPlacement,
-            promptSnapshot: {
-              mode: input.mode,
-              systemPromptText: prompt.systemPromptText,
-              promptText: prompt.promptText,
-              promptFragments: prompt.promptFragments,
-              promptDebug: prompt.promptDebug
+            input: {
+              ...input,
+              placement: normalizedPlacement
             },
-            settingsSnapshot: {
-              stylePreset: input.stylePreset,
-              lightPreset: input.lightPreset,
-              instructions: input.instructions,
-              targetMaterial: input.targetMaterial,
-              surfaceDescription: input.surfaceDescription,
-              placement: normalizedPlacement,
-              preserveObject: input.preserveObject,
-              preservePerspective: input.preservePerspective,
-              protectionRules: input.protectionRules ?? null,
-              variantsRequested: input.variantsRequested
-            }
+            prompt,
+            sourceImagePath: sourceImage.filePath
           })
-        )
-      );
+        : await this.executeFakeGeneration({
+            generationId: generation.id,
+            input: {
+              ...input,
+              placement: normalizedPlacement
+            },
+            prompt,
+            fallbackReason: executionPlan.reason,
+            vertexAttempted: false
+          });
+
+      const actualCost = Number((executionResult.images.length * estimate.unitPrice).toFixed(4));
 
       await db
         .update(generations)
         .set({
+          provider: executionResult.provider,
+          model: executionResult.model,
           status: 'succeeded',
-          variantsReturned: createdImages.length,
-          actualCost: String(Number((createdImages.length * estimate.unitPrice).toFixed(4))),
+          variantsReturned: executionResult.images.length,
+          actualCost: String(actualCost),
           usageJson: {
-            fakeGeneration: true,
+            ...executionResult.usageJson,
             requestConfiguredForVertex: requestSkeleton.configured,
-            variantsReturned: createdImages.length,
-            actualCost: Number((createdImages.length * estimate.unitPrice).toFixed(4)),
+            variantsReturned: executionResult.images.length,
+            actualCost,
             unitPrice: estimate.unitPrice
           }
         })
@@ -164,13 +200,12 @@ export class GenerationService {
 
       await db.insert(costLogs).values({
         generationId: generation.id,
-        provider: 'dev-fake',
-        model:
-          requestSkeleton.model === 'unconfigured' ? `${input.mode}-fake` : requestSkeleton.model,
+        provider: executionResult.provider,
+        model: executionResult.model,
         unitType: estimate.unitType,
-        quantity: String(createdImages.length),
+        quantity: String(executionResult.images.length),
         unitPrice: String(estimate.unitPrice),
-        totalPrice: String(Number((createdImages.length * estimate.unitPrice).toFixed(4))),
+        totalPrice: String(actualCost),
         currency: estimate.currency
       });
 
@@ -178,10 +213,10 @@ export class GenerationService {
         generation: {
           id: generation.id,
           status: 'succeeded',
-          variantsReturned: createdImages.length
+          variantsReturned: executionResult.images.length
         },
         promptDebug: prompt.promptDebug,
-        images: createdImages.map((image) => ({
+        images: executionResult.images.map((image) => ({
           id: image.id,
           parentImageId: image.parentImageId,
           thumbnailPath: image.thumbnailPath
@@ -193,7 +228,7 @@ export class GenerationService {
         .set({
           status: 'failed',
           usageJson: {
-            fakeGeneration: true,
+            fakeGeneration: !executionPlan.useVertex,
             error: error instanceof Error ? error.message : 'unknown error'
           }
         })
@@ -201,6 +236,151 @@ export class GenerationService {
 
       throw error;
     }
+  }
+
+  private async executeWithVertexFallback(options: {
+    generationId: string;
+    input: CreateGenerationInput;
+    prompt: PromptBuildResult;
+    sourceImagePath: string;
+  }): Promise<GenerationExecutionResult> {
+    try {
+      const sourceImageBytes = await storage.readAsset(options.sourceImagePath);
+      const providerResult = await vertexImageService.generateEnvironmentEdit(
+        options.input,
+        options.prompt.promptText,
+        sourceImageBytes
+      );
+
+      return await this.persistVertexResult({
+        generationId: options.generationId,
+        input: options.input,
+        prompt: options.prompt,
+        providerResult
+      });
+    } catch (error) {
+      // Vertex failures fall back to the existing fake flow so the editor remains usable in dev.
+      const fallbackReason =
+        error instanceof VertexProviderError ? error.message : 'Unknown Vertex provider error.';
+
+      return this.executeFakeGeneration({
+        generationId: options.generationId,
+        input: options.input,
+        prompt: options.prompt,
+        fallbackReason,
+        vertexAttempted: true,
+        vertexError: error
+      });
+    }
+  }
+
+  private async persistVertexResult(options: {
+    generationId: string;
+    input: CreateGenerationInput;
+    prompt: PromptBuildResult;
+    providerResult: VertexGenerationResult;
+  }): Promise<GenerationExecutionResult> {
+    const createdImages = await Promise.all(
+      options.providerResult.images.map((image, index) =>
+        imageService.createGeneratedVariant({
+          sourceImageId: options.input.sourceImageId,
+          generationId: options.generationId,
+          mode: options.input.mode,
+          variantIndex: index,
+          placement: options.input.placement,
+          promptSnapshot: {
+            mode: options.input.mode,
+            systemPromptText: options.prompt.systemPromptText,
+            promptText: options.prompt.promptText,
+            promptFragments: options.prompt.promptFragments,
+            promptDebug: options.prompt.promptDebug
+          },
+          settingsSnapshot: {
+            stylePreset: options.input.stylePreset,
+            lightPreset: options.input.lightPreset,
+            instructions: options.input.instructions,
+            targetMaterial: options.input.targetMaterial,
+            surfaceDescription: options.input.surfaceDescription,
+            placement: options.input.placement,
+            preserveObject: options.input.preserveObject,
+            preservePerspective: options.input.preservePerspective,
+            protectionRules: options.input.protectionRules ?? null,
+            variantsRequested: options.input.variantsRequested
+          },
+          generatedAsset: {
+            bytes: image.bytes,
+            mimeType: image.mimeType,
+            provider: 'vertex'
+          }
+        })
+      )
+    );
+
+    return {
+      provider: 'vertex',
+      model: options.providerResult.model,
+      images: createdImages,
+      usageJson: {
+        ...options.providerResult.usage,
+        fakeGeneration: false,
+        vertexAttempted: true,
+        vertexFallbackUsed: false
+      }
+    };
+  }
+
+  private async executeFakeGeneration(options: {
+    generationId: string;
+    input: CreateGenerationInput;
+    prompt: PromptBuildResult;
+    fallbackReason: string | null;
+    vertexAttempted: boolean;
+    vertexError?: unknown;
+  }): Promise<GenerationExecutionResult> {
+    const createdImages = await Promise.all(
+      Array.from({ length: options.input.variantsRequested }, (_, index) =>
+        imageService.createGeneratedVariant({
+          sourceImageId: options.input.sourceImageId,
+          generationId: options.generationId,
+          mode: options.input.mode,
+          variantIndex: index,
+          placement: options.input.placement,
+          promptSnapshot: {
+            mode: options.input.mode,
+            systemPromptText: options.prompt.systemPromptText,
+            promptText: options.prompt.promptText,
+            promptFragments: options.prompt.promptFragments,
+            promptDebug: options.prompt.promptDebug
+          },
+          settingsSnapshot: {
+            stylePreset: options.input.stylePreset,
+            lightPreset: options.input.lightPreset,
+            instructions: options.input.instructions,
+            targetMaterial: options.input.targetMaterial,
+            surfaceDescription: options.input.surfaceDescription,
+            placement: options.input.placement,
+            preserveObject: options.input.preserveObject,
+            preservePerspective: options.input.preservePerspective,
+            protectionRules: options.input.protectionRules ?? null,
+            variantsRequested: options.input.variantsRequested,
+            vertexFallbackReason: options.fallbackReason
+          }
+        })
+      )
+    );
+
+    return {
+      provider: 'dev-fake',
+      model: `${options.input.mode}-fake`,
+      images: createdImages,
+      usageJson: {
+        fakeGeneration: true,
+        vertexAttempted: options.vertexAttempted,
+        vertexFallbackUsed: true,
+        vertexFallbackReason: options.fallbackReason,
+        vertexError: options.vertexError instanceof Error ? options.vertexError.message : null
+      }
+    };
   }
 }
 

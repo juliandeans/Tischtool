@@ -383,6 +383,11 @@ export class ImageService {
     placement: GenerationPlacement;
     promptSnapshot: Record<string, unknown>;
     settingsSnapshot: Record<string, unknown>;
+    generatedAsset?: {
+      bytes: Uint8Array;
+      mimeType: string;
+      provider: 'vertex' | 'dev-fake';
+    };
   }) {
     if (!isDatabaseConfigured()) {
       throw new Error('DATABASE_URL is not configured.');
@@ -427,7 +432,11 @@ export class ImageService {
     let generatedBuffer: Buffer;
     let metadata: sharp.Metadata;
 
-    if (input.mode === 'room_insert' && input.placement) {
+    if (input.generatedAsset) {
+      const providerImage = sharp(input.generatedAsset.bytes).rotate();
+      metadata = await providerImage.metadata();
+      generatedBuffer = await providerImage.png().toBuffer();
+    } else if (input.mode === 'room_insert' && input.placement) {
       const roomImage = await this.getImage(input.placement.roomImageId);
       const roomBytes = await storage.readAsset(roomImage.filePath);
       const furnitureBuffer = await sharp(sourceBytes)
@@ -533,7 +542,8 @@ export class ImageService {
           sourceImageId: sourceImage.id,
           roomImageId:
             input.mode === 'room_insert' && input.placement ? input.placement.roomImageId : null,
-          fakeGeneration: true
+          fakeGeneration: input.generatedAsset ? false : true,
+          provider: input.generatedAsset?.provider ?? 'dev-fake'
         }
       })
       .returning({
