@@ -103,43 +103,40 @@
       </EmptyState>
     {:else}
       <form class="upload-form" on:submit={submitUpload}>
-        <Select
-          bind:value={projectId}
-          id="upload-project"
-          label="Projekt"
-          options={projectOptions}
-          on:change={() => goto(projectId ? `/library?projectId=${projectId}` : '/library')}
-        />
-        <div class="upload-form__field">
-          <span class="field-label">Datei</span>
-          <div class="upload-picker">
-            <input
-              bind:this={fileInput}
-              accept="image/*"
-              class="visually-hidden"
-              id="library-file"
-              type="file"
-              on:change={(event) => {
-                const target = event.currentTarget as HTMLInputElement;
-                selectedFileName = target.files?.[0]?.name ?? '';
-              }}
-            />
-            <label class="upload-picker__trigger" for="library-file"> Bild auswählen </label>
-            <div class="upload-picker__meta">
-              <strong>{selectedFileName || 'Noch keine Datei ausgewählt'}</strong>
-              <span>PNG, JPG oder WebP werden direkt als Original und Thumbnail gespeichert.</span>
+        <div class="upload-form__row">
+          <Select
+            bind:value={projectId}
+            id="upload-project"
+            label="Projekt"
+            options={projectOptions}
+            on:change={() => goto(projectId ? `/library?projectId=${projectId}` : '/library')}
+          />
+          <div class="upload-form__field">
+            <span class="field-label">Datei</span>
+            <div class="upload-picker">
+              <input
+                bind:this={fileInput}
+                accept="image/*"
+                class="visually-hidden"
+                id="library-file"
+                type="file"
+                on:change={(event) => {
+                  const target = event.currentTarget as HTMLInputElement;
+                  selectedFileName = target.files?.[0]?.name ?? '';
+                }}
+              />
+              <label class="upload-picker__trigger" for="library-file">
+                {selectedFileName || 'Bild auswählen'}
+              </label>
             </div>
+          </div>
+          <div class="upload-form__actions">
+            <Button type="submit" loading={isUploading} variant="primary">Bild hochladen</Button>
           </div>
         </div>
         {#if uploadError}
           <p class="upload-form__error">{uploadError}</p>
         {/if}
-        {#if uploadSuccess}
-          <p class="upload-form__success">{uploadSuccess}</p>
-        {/if}
-        <div class="cluster">
-          <Button type="submit" loading={isUploading} variant="primary">Bild hochladen</Button>
-        </div>
       </form>
     {/if}
   </Card>
@@ -167,6 +164,13 @@
     gap: var(--space-3);
   }
 
+  .upload-form__row {
+    align-items: end;
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: minmax(220px, 320px) minmax(0, 1fr) auto;
+  }
+
   .upload-form__field {
     display: grid;
     gap: 8px;
@@ -174,12 +178,7 @@
 
   .upload-picker {
     align-items: center;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-card);
-    display: grid;
-    gap: var(--space-3);
-    grid-template-columns: auto minmax(0, 1fr);
-    padding: var(--space-3);
+    display: flex;
   }
 
   .upload-picker__trigger {
@@ -209,24 +208,6 @@
     outline-offset: 2px;
   }
 
-  .upload-picker__meta {
-    display: grid;
-    gap: 4px;
-    min-width: 0;
-  }
-
-  .upload-picker__meta strong,
-  .upload-picker__meta span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .upload-picker__meta span {
-    color: var(--color-text-muted);
-    font-size: 0.9rem;
-  }
-
   .field-label {
     font-size: 0.95rem;
     font-weight: 600;
@@ -243,14 +224,18 @@
     margin: 0;
   }
 
+  .upload-form__actions {
+    display: flex;
+  }
+
   @media (max-width: 720px) {
+    .upload-form__row,
     .upload-picker {
       grid-template-columns: 1fr;
     }
 
-    .upload-picker__meta strong,
-    .upload-picker__meta span {
-      white-space: normal;
+    .upload-form__actions {
+      justify-content: flex-start;
     }
   }
 </style>
