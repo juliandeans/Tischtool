@@ -19,7 +19,7 @@ export class RoomPlacementService {
     if (!placement) {
       return {
         valid: false,
-        message: 'Placement is required for room_insert mode.'
+        message: 'Placement is required for room_placement mode.'
       };
     }
 

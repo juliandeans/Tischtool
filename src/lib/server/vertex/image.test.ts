@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_PROTECTION_RULES } from '$lib/types/generation';
 import { vertexClient } from '$lib/server/vertex/client';
 import {
   buildEnvironmentEditVertexPayload,
@@ -16,14 +17,18 @@ describe('vertex image helpers', () => {
         sourceImageId: 'image-1',
         mode: 'environment_edit',
         variantsRequested: 3,
-        stylePreset: 'wohnlich',
-        lightPreset: 'abendlicht',
+        userInput: 'gelbe Wand',
+        stylePreset: 'warm',
+        lightPreset: 'warm',
+        roomPreset: 'none',
         instructions: 'gelbe Wand',
         targetMaterial: null,
         surfaceDescription: '',
         preserveObject: true,
         preservePerspective: true,
         placement: null
+        ,
+        protectionRules: DEFAULT_PROTECTION_RULES
       },
       'Kontext:\n- Testprompt',
       'ZmFrZS1iYXNlNjQ='
@@ -57,14 +62,17 @@ describe('vertex image helpers', () => {
         sourceImageId: 'image-1',
         mode: 'environment_edit',
         variantsRequested: 2,
-        stylePreset: 'wohnlich',
-        lightPreset: 'abendlicht',
+        userInput: 'gelbe Wand',
+        stylePreset: 'warm',
+        lightPreset: 'warm',
+        roomPreset: 'none',
         instructions: 'gelbe Wand',
         targetMaterial: null,
         surfaceDescription: '',
         preserveObject: true,
         preservePerspective: true,
-        placement: null
+        placement: null,
+        protectionRules: DEFAULT_PROTECTION_RULES
       },
       'Kontext:\n- Testprompt',
       {

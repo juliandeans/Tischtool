@@ -22,6 +22,7 @@
 
 <div class="image-card">
   <Card padded={false}>
+    <a class="image-card__link" href={editUrl} aria-label={`${title} im Editor öffnen`}></a>
     <img class="image-card__preview" src={thumbnailUrl} alt={imageAlt(title)} loading="lazy" />
     <div class="image-card__overlay image-card__overlay--left">
       <IconButton
@@ -63,6 +64,13 @@
 
   .image-card :global(section) {
     height: 100%;
+    position: relative;
+  }
+
+  .image-card__link {
+    inset: 0;
+    position: absolute;
+    z-index: 1;
   }
 
   .image-card__preview {
@@ -80,6 +88,7 @@
     right: var(--space-3);
     top: var(--space-3);
     transition: opacity 120ms ease;
+    z-index: 3;
   }
 
   .image-card:hover .image-card__overlay {
@@ -100,6 +109,8 @@
     gap: 8px;
     min-height: 112px;
     padding: var(--space-3);
+    position: relative;
+    z-index: 2;
   }
 
   h3,

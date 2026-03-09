@@ -6,165 +6,126 @@
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
   import ModeTabs from '$lib/components/editor/ModeTabs.svelte';
-  import type { GenerationProtectionRules } from '$lib/types/generation';
-  import type { PresetOption } from '$lib/types/preset';
+  import {
+    DEFAULT_PROTECTION_RULES,
+    type GenerationMode,
+    type ProtectionRules,
+    type RoomPreset
+  } from '$lib/types/generation';
 
-  export let styleOptions: PresetOption[] = [];
-  export let lightOptions: PresetOption[] = [];
-  export let initialMode: 'environment_edit' | 'material_edit' = 'environment_edit';
+  export let initialMode: GenerationMode = 'environment_edit';
   export let initialStyle = 'original';
   export let initialLight = 'original';
   export let initialVariants = '1';
   export let initialInstructions = '';
-  export let initialTargetMaterial = 'oak-light';
-  export let initialSurfaceDescription = '';
+  export let initialRoomPreset: RoomPreset = 'none';
   export let submitting = false;
   export let error = '';
 
   const dispatch = createEventDispatcher<{
     generate: {
-      mode: 'environment_edit' | 'material_edit';
+      mode: GenerationMode;
       stylePreset: string;
       lightPreset: string;
+      roomPreset: RoomPreset;
       variantsRequested: number;
+      userInput: string;
       instructions: string;
-      targetMaterial: string | null;
+      targetMaterial: null;
       surfaceDescription: string;
       preserveObject: boolean;
       preservePerspective: boolean;
+      protectionRules: ProtectionRules;
     };
     modechange: {
-      mode: 'environment_edit' | 'material_edit';
+      mode: GenerationMode;
     };
     statechange: {
-      mode: 'environment_edit' | 'material_edit';
+      mode: GenerationMode;
       stylePreset: string;
       lightPreset: string;
+      roomPreset: RoomPreset;
       variantsRequested: number;
+      userInput: string;
       instructions: string;
-      targetMaterial: string | null;
+      targetMaterial: null;
       surfaceDescription: string;
       preserveObject: boolean;
       preservePerspective: boolean;
-      protectionRules: GenerationProtectionRules;
+      protectionRules: ProtectionRules;
     };
   }>();
 
-  const materialOptions = [
-    { value: 'oak-light', label: 'Eiche hell' },
-    { value: 'walnut', label: 'Nussbaum' },
-    { value: 'ash-natural', label: 'Esche natur' },
-    { value: 'smoked-oak', label: 'Räuchereiche' },
-    { value: 'black-stained', label: 'Schwarz gebeizt' }
+  const styleOptions = [
+    { value: 'original', label: 'Original' },
+    { value: 'minimal', label: 'Minimal' },
+    { value: 'warm', label: 'Warm' },
+    { value: 'modern', label: 'Modern' }
+  ];
+
+  const lightOptions = [
+    { value: 'original', label: 'Original' },
+    { value: 'warm', label: 'Warm' },
+    { value: 'bright', label: 'Hell' },
+    { value: 'dramatic', label: 'Dramatisch' }
+  ];
+
+  const roomContextOptions = [
+    { value: 'none', label: 'Aktuell belassen' },
+    { value: 'modern_living', label: 'Modernes Wohnzimmer' },
+    { value: 'scandinavian', label: 'Skandinavisch' },
+    { value: 'landhaus', label: 'Landhaus' },
+    { value: 'loft', label: 'Loft / Industrial' },
+    { value: 'office', label: 'Büro / Arbeitszimmer' },
+    { value: 'childrens_room', label: 'Kinderzimmer' }
   ];
 
   let mode = initialMode;
-  let environmentStyle = initialStyle;
-  let environmentLight = initialLight;
-  let environmentVariants = initialVariants;
-  let environmentNotes = initialMode === 'environment_edit' ? initialInstructions : '';
-  let materialVariants = initialVariants;
-  let materialNotes = initialMode === 'material_edit' ? initialInstructions : '';
-  let targetMaterial = initialTargetMaterial;
-  let surfaceDescription = initialSurfaceDescription;
+  let stylePreset = initialStyle;
+  let lightPreset = initialLight;
+  let roomPreset = initialRoomPreset;
+  let variantsRequested = initialVariants;
+  let userInput = initialInstructions;
   let showProtectionRules = false;
-  let environmentRuleState = {
-    preserveObject: true,
-    preservePerspective: true,
-    preserveFrame: true,
-    noExtraFurniture: true,
-    changeEnvironmentFirst: true
-  };
-  let materialRuleState = {
-    preserveForm: true,
-    preserveConstruction: true,
-    preservePerspective: true,
-    preserveBackground: true,
-    preserveLight: true
-  };
+  let protectionRules: ProtectionRules = { ...DEFAULT_PROTECTION_RULES };
 
-  $: protectionRules =
+  $: if (mode === 'material_edit') {
+    protectionRules = {
+      ...protectionRules,
+      changesOnlyEnvironment: false
+    };
+  }
+
+  const buildPayload = () => ({
+    mode,
+    stylePreset,
+    lightPreset: mode === 'material_edit' ? 'original' : lightPreset,
+    roomPreset,
+    variantsRequested: Number(variantsRequested),
+    userInput: userInput.trim(),
+    instructions: userInput.trim(),
+    targetMaterial: null,
+    surfaceDescription: '',
+    preserveObject: protectionRules.preserveObject,
+    preservePerspective: protectionRules.preservePerspective,
+    protectionRules
+  });
+
+  const ruleItems: Array<{ key: keyof ProtectionRules; label: string }> =
     mode === 'material_edit'
       ? [
-          { key: 'preserveForm', label: 'Form erhalten', checked: materialRuleState.preserveForm },
-          {
-            key: 'preserveConstruction',
-            label: 'Konstruktion erhalten',
-            checked: materialRuleState.preserveConstruction
-          },
-          {
-            key: 'preservePerspective',
-            label: 'Perspektive erhalten',
-            checked: materialRuleState.preservePerspective
-          },
-          {
-            key: 'preserveBackground',
-            label: 'Hintergrund erhalten',
-            checked: materialRuleState.preserveBackground
-          },
-          {
-            key: 'preserveLight',
-            label: 'Licht möglichst erhalten',
-            checked: materialRuleState.preserveLight
-          }
+          { key: 'preserveObject', label: 'Objekt erhalten' },
+          { key: 'preservePerspective', label: 'Perspektive erhalten' },
+          { key: 'preserveCrop', label: 'Bildausschnitt möglichst erhalten' },
+          { key: 'noExtraFurniture', label: 'Keine zusätzlichen Möbel' }
         ]
       : [
-          {
-            key: 'preserveObject',
-            label: 'Objekt erhalten',
-            checked: environmentRuleState.preserveObject
-          },
-          {
-            key: 'preservePerspective',
-            label: 'Perspektive erhalten',
-            checked: environmentRuleState.preservePerspective
-          },
-          {
-            key: 'preserveFrame',
-            label: 'Bildausschnitt möglichst erhalten',
-            checked: environmentRuleState.preserveFrame
-          },
-          {
-            key: 'noExtraFurniture',
-            label: 'Keine zusätzlichen Möbel',
-            checked: environmentRuleState.noExtraFurniture
-          },
-          {
-            key: 'changeEnvironmentFirst',
-            label: 'Änderungen primär an der Umgebung',
-            checked: environmentRuleState.changeEnvironmentFirst
-          }
+          { key: 'preserveObject', label: 'Objekt erhalten' },
+          { key: 'preservePerspective', label: 'Perspektive erhalten' },
+          { key: 'preserveCrop', label: 'Bildausschnitt möglichst erhalten' },
+          { key: 'noExtraFurniture', label: 'Keine zusätzlichen Möbel' },
+          { key: 'changesOnlyEnvironment', label: 'Änderungen primär an der Umgebung' }
         ];
-
-  const buildPayload = () => {
-    if (mode === 'material_edit') {
-      return {
-        mode,
-        stylePreset: 'original',
-        lightPreset: 'original',
-        variantsRequested: Number(materialVariants),
-        instructions: materialNotes.trim(),
-        targetMaterial,
-        surfaceDescription: surfaceDescription.trim(),
-        preserveObject: materialRuleState.preserveForm && materialRuleState.preserveConstruction,
-        preservePerspective: materialRuleState.preservePerspective,
-        protectionRules: materialRuleState
-      };
-    }
-
-    return {
-      mode,
-      stylePreset: environmentStyle,
-      lightPreset: environmentLight,
-      variantsRequested: Number(environmentVariants),
-      instructions: environmentNotes.trim(),
-      targetMaterial: null,
-      surfaceDescription: '',
-      preserveObject: environmentRuleState.preserveObject,
-      preservePerspective: environmentRuleState.preservePerspective,
-      protectionRules: environmentRuleState
-    };
-  };
 
   const submit = () => {
     dispatch('generate', buildPayload());
@@ -178,12 +139,21 @@
     <div class="stack">
       <div>
         <div class="eyebrow">Modus</div>
-        <h2>{mode === 'material_edit' ? 'Material Edit' : 'Environment Edit'}</h2>
+        <h2>
+          {mode === 'material_edit'
+            ? 'Stück modellieren'
+            : mode === 'room_placement'
+              ? 'Stück platzieren'
+              : 'Umgebung'}
+        </h2>
       </div>
       <ModeTabs
         value={mode}
         on:change={(event) => {
           mode = event.detail;
+          if (mode === 'material_edit' && roomPreset === 'none') {
+            roomPreset = 'none';
+          }
           dispatch('modechange', { mode });
         }}
       />
@@ -192,130 +162,88 @@
 
   <Card>
     <form class="stack" on:submit|preventDefault={submit}>
-      {#if mode === 'material_edit'}
-        <Select
-          bind:value={targetMaterial}
-          id="editor-material"
-          label="Zielmaterial"
-          description="Material darf sich ändern, Form und Aufbau sollen erhalten bleiben."
-          options={materialOptions}
-        />
-        <Input
-          bind:value={surfaceDescription}
-          id="editor-surface"
-          label="Oberfläche"
-          description="Optional, z. B. matt geölt oder fein gebürstet."
-          placeholder="z. B. matt geölt, offenporig, leicht gebürstet"
-        />
-        <Input
-          bind:value={materialNotes}
-          id="editor-material-notes"
-          label="Zusätzliche Hinweise"
-          multiline
-          placeholder="z. B. Maserung ruhig halten, warme Holzwirkung ohne Farbkippen"
-        />
-        <Select
-          bind:value={materialVariants}
-          id="editor-material-variants"
-          label="Varianten"
-          options={[
-            { value: '1', label: '1 Variante' },
-            { value: '2', label: '2 Varianten' },
-            { value: '3', label: '3 Varianten' },
-            { value: '4', label: '4 Varianten' }
-          ]}
-        />
-      {:else}
-        <Select
-          bind:value={environmentStyle}
-          id="editor-style"
-          label="Stil"
-          description="Deterministische Stil-Presets für die Umgebungsanpassung."
-          options={styleOptions}
-        />
-        <Select
-          bind:value={environmentLight}
-          id="editor-light"
-          label="Licht"
-          description="Licht wirkt auf die Umgebung, nicht auf das Möbel als neues Objekt."
-          options={lightOptions}
-        />
-        <Select
-          bind:value={environmentVariants}
-          id="editor-variants"
-          label="Varianten"
-          options={[
-            { value: '1', label: '1 Variante' },
-            { value: '2', label: '2 Varianten' },
-            { value: '3', label: '3 Varianten' },
-            { value: '4', label: '4 Varianten' }
-          ]}
-        />
-        <Input
-          bind:value={environmentNotes}
-          id="editor-notes"
-          label="Zusätzliche Hinweise"
-          multiline
-          placeholder="z. B. gelbe Wand, Hängepflanzen, ruhigere Atmosphäre"
-        />
-      {/if}
-      <div class="editor-sidebar__rules">
-        <Card accent="yellow" class="editor-sidebar__rules-card" padded={false}>
-          <details bind:open={showProtectionRules} class="editor-sidebar__disclosure">
-            <summary class="editor-sidebar__summary">
-              <span>
-                <strong>Standardschutzregeln</strong>
-                <small>Standardmäßig aktiv, bei Bedarf anpassbar.</small>
-              </span>
-              <span class="editor-sidebar__summary-indicator" aria-hidden="true"></span>
-            </summary>
-            <div class="editor-sidebar__rules-panel">
-              <div class="editor-sidebar__rule-list">
-                {#each protectionRules as rule}
-                  <label class="editor-sidebar__rule">
-                    <input
-                      checked={rule.checked}
-                      class="editor-sidebar__checkbox"
-                      type="checkbox"
-                      on:change={(event) => {
-                        const target = event.currentTarget as HTMLInputElement;
+      <Select
+        bind:value={roomPreset}
+        id="editor-room-context"
+        label="Raumkontext"
+        description="Optionaler Zielraum für die Bildanpassung."
+        options={roomContextOptions}
+      />
 
-                        if (mode === 'material_edit') {
-                          materialRuleState = {
-                            ...materialRuleState,
+      <Select bind:value={stylePreset} id="editor-style" label="Stil" options={styleOptions} />
+
+      {#if mode !== 'material_edit'}
+        <Select bind:value={lightPreset} id="editor-light" label="Licht" options={lightOptions} />
+      {/if}
+
+      <Select
+        bind:value={variantsRequested}
+        id="editor-variants"
+        label="Varianten"
+        options={[
+          { value: '1', label: '1 Variante' },
+          { value: '2', label: '2 Varianten' },
+          { value: '3', label: '3 Varianten' },
+          { value: '4', label: '4 Varianten' }
+        ]}
+      />
+
+      <Input
+        bind:value={userInput}
+        id="editor-user-input"
+        label={mode === 'material_edit' ? 'Änderungen am Möbelstück' : 'Zusätzliche Hinweise'}
+        multiline
+        placeholder={
+          mode === 'material_edit'
+            ? 'z. B. weichere Formensprache, reduziertere Oberfläche, moderner wirken'
+            : 'z. B. gelbe Wand, Teppich austauschen, ruhigeres Gesamtbild'
+        }
+      />
+
+      {#if mode !== 'room_placement'}
+        <div class="editor-sidebar__rules">
+          <Card accent="yellow" class="editor-sidebar__rules-card" padded={false}>
+            <details bind:open={showProtectionRules} class="editor-sidebar__disclosure">
+              <summary class="editor-sidebar__summary">
+                <span>
+                  <strong>Standardschutzregeln</strong>
+                  <small>Standardmäßig aktiv, bei Bedarf anpassbar.</small>
+                </span>
+                <span class="editor-sidebar__summary-indicator" aria-hidden="true"></span>
+              </summary>
+              <div class="editor-sidebar__rules-panel">
+                <div class="editor-sidebar__rule-list">
+                  {#each ruleItems as rule, index}
+                    <label class="editor-sidebar__rule">
+                      <input
+                        checked={protectionRules[rule.key]}
+                        class="editor-sidebar__checkbox"
+                        type="checkbox"
+                        on:change={(event) => {
+                          const target = event.currentTarget as HTMLInputElement;
+                          protectionRules = {
+                            ...protectionRules,
                             [rule.key]: target.checked
                           };
-
-                          return;
-                        }
-
-                        environmentRuleState = {
-                          ...environmentRuleState,
-                          [rule.key]: target.checked
-                        };
-                      }}
-                    />
-                    <span>{rule.label}</span>
-                  </label>
-                {/each}
+                        }}
+                      />
+                      <span>{rule.label}</span>
+                    </label>
+                    {#if index < ruleItems.length - 1}
+                      <div class="editor-sidebar__rule-divider" aria-hidden="true"></div>
+                    {/if}
+                  {/each}
+                </div>
               </div>
-            </div>
-          </details>
-        </Card>
-      </div>
-      <div class="editor-sidebar__info">
-        <Card>
-          <div class="stack">
-            <div class="eyebrow">Lokaler Modus</div>
-            <p class="muted">
-              Die Generierung läuft lokal als fake-{mode}-Variante, ohne Vertex-AI.
-            </p>
-          </div>
-        </Card>
-      </div>
+            </details>
+          </Card>
+        </div>
+      {/if}
+
       {#if error}
         <p class="editor-sidebar__error">{error}</p>
       {/if}
+
       <Button type="submit" variant="primary" loading={submitting}>Varianten generieren</Button>
     </form>
   </Card>
@@ -326,14 +254,8 @@
     margin: 6px 0 0;
   }
 
-  .editor-sidebar__rules,
-  .editor-sidebar__info {
-    background: var(--color-surface-muted);
-  }
-
   .editor-sidebar__disclosure {
     display: grid;
-    gap: 0;
   }
 
   .editor-sidebar__summary {
@@ -342,8 +264,7 @@
     display: flex;
     justify-content: space-between;
     list-style: none;
-    min-height: 0;
-    padding: 18px var(--space-4);
+    padding: 16px var(--space-4);
   }
 
   .editor-sidebar__summary::-webkit-details-marker {
@@ -358,20 +279,20 @@
   .editor-sidebar__summary small {
     color: var(--color-text-muted);
     font-size: 0.85rem;
-    font-weight: 500;
   }
 
   .editor-sidebar__summary-indicator {
-    border-bottom: 2px solid var(--color-text);
-    border-right: 2px solid var(--color-text);
-    height: 10px;
-    transform: rotate(45deg);
-    transition: transform 120ms ease;
-    width: 10px;
+    border-bottom: 4px solid transparent;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid var(--color-text);
+    height: 0;
+    transition: transform 160ms ease;
+    width: 0;
   }
 
-  .editor-sidebar__disclosure[open] .editor-sidebar__summary-indicator {
-    transform: rotate(225deg);
+  details[open] .editor-sidebar__summary-indicator {
+    transform: rotate(180deg);
   }
 
   .editor-sidebar__rules-panel {
@@ -379,75 +300,62 @@
   }
 
   .editor-sidebar__rule-list {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
     display: grid;
-    gap: 0;
+    overflow: hidden;
   }
 
   .editor-sidebar__rule {
     align-items: center;
     display: grid;
-    gap: 10px;
-    grid-template-columns: auto minmax(0, 1fr);
-    padding: 14px 0;
-    position: relative;
+    gap: 12px;
+    grid-template-columns: auto 1fr;
+    padding: 14px 16px;
   }
 
-  .editor-sidebar__rule + .editor-sidebar__rule::before {
+  .editor-sidebar__rule-divider {
     background: linear-gradient(
       90deg,
-      rgba(217, 213, 205, 0) 0%,
-      rgba(217, 213, 205, 0.95) 18%,
-      rgba(217, 213, 205, 0.95) 82%,
-      rgba(217, 213, 205, 0) 100%
+      rgba(208, 203, 194, 0),
+      rgba(208, 203, 194, 1),
+      rgba(208, 203, 194, 0)
     );
-    content: '';
     height: 1px;
-    left: 0;
-    position: absolute;
-    right: 0;
-    top: 0;
+    margin: 0 16px;
   }
 
-  .editor-sidebar__rule input {
+  .editor-sidebar__checkbox {
     appearance: none;
-    background: var(--color-surface);
+    background: #fff;
     border: 1px solid var(--color-border);
-    border-radius: 6px;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
     display: grid;
-    height: 20px;
+    height: 28px;
     margin: 0;
     place-items: center;
-    position: relative;
-    width: 20px;
+    width: 28px;
   }
 
-  .editor-sidebar__rule input::after {
+  .editor-sidebar__checkbox::after {
     border-bottom: 3px solid var(--color-blue);
     border-right: 3px solid var(--color-blue);
     content: '';
-    height: 9px;
-    margin: 0;
+    height: 11px;
     opacity: 0;
-    transform: translateY(-1px) rotate(45deg) scale(0.8);
-    transition:
-      opacity 120ms ease,
-      transform 120ms ease;
-    width: 5px;
+    transform: translateY(-1px) rotate(45deg);
+    width: 6px;
   }
 
-  .editor-sidebar__rule input:checked::after {
+  .editor-sidebar__checkbox:checked::after {
     opacity: 1;
-    transform: translateY(-1px) rotate(45deg) scale(1);
   }
 
-  .editor-sidebar__rule input:focus-visible {
-    outline: 2px solid rgba(0, 87, 184, 0.2);
+  .editor-sidebar__checkbox:focus-visible {
+    outline: 2px solid rgba(0, 87, 184, 0.24);
     outline-offset: 2px;
-  }
-
-  .editor-sidebar__rule span {
-    line-height: 1.3;
   }
 
   .editor-sidebar__error {

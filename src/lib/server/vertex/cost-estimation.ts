@@ -3,7 +3,7 @@ import type { GenerationMode } from '$lib/types/generation';
 const DEV_UNIT_PRICES: Record<GenerationMode, number> = {
   environment_edit: 0.04,
   material_edit: 0.035,
-  room_insert: 0.06
+  room_placement: 0.06
 };
 
 export type CostEstimate = {

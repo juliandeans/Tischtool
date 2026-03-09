@@ -118,7 +118,7 @@
   .sidebar__link.active .sidebar__dot {
     width: 7px;
     height: 32px;
-    border-radius: 2px;
+    border-radius: 0px;
   }
 
   .sidebar__link:focus-visible {

@@ -11,7 +11,7 @@
   import Card from '$lib/components/ui/Card.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import type { PostGenerationPreviewResponse, PostGenerationResponse } from '$lib/types/api';
-  import type { PromptDebugPreview } from '$lib/types/generation';
+  import type { PromptDebugPreview, RoomPreset } from '$lib/types/generation';
   import type { ImagePlacement } from '$lib/types/image';
 
   export let data;
@@ -23,11 +23,18 @@
   let isGenerating = false;
   let isUploadingRoomPhoto = false;
   let selectedProjectId = data.selectedProjectId ?? '';
-  let selectedRoomImageId = data.images[0]?.id ?? '';
+  let selectedRoomImageId =
+    data.selectedRoomImageId && data.images.some((image) => image.id === data.selectedRoomImageId)
+      ? data.selectedRoomImageId
+      : (data.images[0]?.id ?? '');
   let selectedFurnitureImageId =
-    data.images.find((image) => image.id !== selectedRoomImageId)?.id ?? '';
+    data.selectedFurnitureImageId &&
+    data.images.some((image) => image.id === data.selectedFurnitureImageId)
+      ? data.selectedFurnitureImageId
+      : (data.images.find((image) => image.id !== selectedRoomImageId)?.id ?? '');
   let stylePreset = 'original';
   let lightPreset = 'original';
+  let roomPreset: RoomPreset = 'modern_living';
   let variantsRequested = '1';
   let instructions = '';
   let placement: ImagePlacement | null = null;
@@ -40,7 +47,9 @@
     furnitureImageId: string;
     stylePreset: string;
     lightPreset: string;
+    roomPreset: string;
     variantsRequested: number;
+    userInput: string;
     instructions: string;
     preserveObject: boolean;
     preservePerspective: boolean;
@@ -102,10 +111,12 @@
       body: JSON.stringify({
         projectId: selectedProjectId,
         sourceImageId: roomInsertState.furnitureImageId,
-        mode: 'room_insert',
+        mode: 'room_placement',
         variantsRequested: roomInsertState.variantsRequested,
         stylePreset: roomInsertState.stylePreset,
         lightPreset: roomInsertState.lightPreset,
+        roomPreset: roomInsertState.roomPreset,
+        userInput: roomInsertState.userInput,
         instructions: roomInsertState.instructions,
         targetMaterial: null,
         surfaceDescription: '',
@@ -169,6 +180,20 @@
     await goto(projectId ? `/room-insert?projectId=${projectId}` : '/room-insert');
   };
 
+  const handleModeChange = async (
+    event: CustomEvent<'environment_edit' | 'material_edit' | 'room_placement'>
+  ) => {
+    if (event.detail === 'room_placement') {
+      return;
+    }
+
+    const targetImageId = selectedFurnitureImageId || selectedRoomImageId || data.images[0]?.id;
+
+    if (targetImageId) {
+      await goto(`/editor/${targetImageId}`);
+    }
+  };
+
   const handleRoomUpload = async (event: CustomEvent<{ file: File }>) => {
     uploadError = '';
     uploadSuccess = '';
@@ -210,7 +235,9 @@
       furnitureImageId: string;
       stylePreset: string;
       lightPreset: string;
+      roomPreset: string;
       variantsRequested: number;
+      userInput: string;
       instructions: string;
       preserveObject: boolean;
       preservePerspective: boolean;
@@ -235,10 +262,12 @@
       body: JSON.stringify({
         projectId: selectedProjectId,
         sourceImageId: event.detail.furnitureImageId,
-        mode: 'room_insert',
+        mode: 'room_placement',
         variantsRequested: event.detail.variantsRequested,
         stylePreset: event.detail.stylePreset,
         lightPreset: event.detail.lightPreset,
+        roomPreset: event.detail.roomPreset,
+        userInput: event.detail.userInput,
         instructions: event.detail.instructions,
         targetMaterial: null,
         surfaceDescription: '',
@@ -284,7 +313,7 @@
     <div class="stack">
       <EmptyState
         title="Noch keine Bilder im Projekt"
-        description="Für room_insert brauchst du mindestens ein Raumfoto und ein Möbelbild im gewählten Projekt."
+        description="Für Stück platzieren brauchst du mindestens ein Raumfoto und ein Möbelbild im gewählten Projekt."
         accent="yellow"
       >
         <Button slot="actions" href={`/library?projectId=${selectedProjectId}`} variant="primary">
@@ -297,6 +326,7 @@
         bind:furnitureImageId={selectedFurnitureImageId}
         bind:stylePreset
         bind:lightPreset
+        bind:roomPreset
         bind:variantsRequested
         bind:instructions
         error={generationError}
@@ -306,14 +336,13 @@
         uploadingRoomPhoto={isUploadingRoomPhoto}
         furnitureImageLabel={furnitureImage?.title ?? ''}
         {furnitureImageOptions}
-        lightOptions={data.lightOptions}
         {placement}
         {projectOptions}
         roomImageLabel={roomImage?.title ?? ''}
         {roomImageOptions}
-        styleOptions={data.styleOptions}
         submitting={isGenerating}
         on:generate={handleGenerate}
+        on:modechange={handleModeChange}
         on:projectchange={handleProjectChange}
         on:statechange={(event) => {
           roomInsertState = event.detail;
@@ -325,7 +354,7 @@
         preview={promptPreview}
         loading={promptPreviewLoading}
         error={promptPreviewError}
-        emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle room_insert-Prompt-Vorschau."
+        emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle Stück-platzieren-Prompt-Vorschau."
       />
     </div>
   {:else}
@@ -350,6 +379,7 @@
           bind:furnitureImageId={selectedFurnitureImageId}
           bind:stylePreset
           bind:lightPreset
+          bind:roomPreset
           bind:variantsRequested
           bind:instructions
           error={generationError}
@@ -359,14 +389,13 @@
           uploadingRoomPhoto={isUploadingRoomPhoto}
           furnitureImageLabel={furnitureImage?.title ?? ''}
           {furnitureImageOptions}
-          lightOptions={data.lightOptions}
           {placement}
           {projectOptions}
           roomImageLabel={roomImage?.title ?? ''}
           {roomImageOptions}
-          styleOptions={data.styleOptions}
           submitting={isGenerating}
           on:generate={handleGenerate}
+          on:modechange={handleModeChange}
           on:projectchange={handleProjectChange}
           on:statechange={(event) => {
             roomInsertState = event.detail;
@@ -378,7 +407,7 @@
           preview={promptPreview}
           loading={promptPreviewLoading}
           error={promptPreviewError}
-          emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle room_insert-Prompt-Vorschau."
+          emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle Stück-platzieren-Prompt-Vorschau."
         />
       </div>
     </div>
@@ -397,8 +426,8 @@
     {#if data.images.length < 2}
       <Card accent="yellow">
         <p class="room-insert__hint">
-          Für eine room_insert-Variante brauchst du mindestens zwei Bilder im Projekt: ein Raumfoto
-          und ein Möbelbild.
+          Für eine Stück-platzieren-Variante brauchst du mindestens zwei Bilder im Projekt: ein
+          Raumfoto und ein Möbelbild.
         </p>
       </Card>
     {/if}

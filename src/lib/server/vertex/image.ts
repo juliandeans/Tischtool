@@ -61,13 +61,13 @@ type PreparedVertexRequest = {
 };
 
 const getRequestType = (mode: GenerationMode): ProviderRequestType =>
-  mode === 'environment_edit' || mode === 'material_edit' || mode === 'room_insert'
+  mode === 'environment_edit' || mode === 'material_edit' || mode === 'room_placement'
     ? 'edit'
     : 'generate';
 
 const getEditStrategy = (mode: GenerationMode, plan: VertexExecutionPlan): string => {
   if (plan.provider === 'dev-fake') {
-    return mode === 'room_insert'
+    return mode === 'room_placement'
       ? 'Fake-Komposition mit Raumfoto, Möbelbild und Zielregion.'
       : 'Fake-Flow auf Basis des Quellbilds ohne echten Provider-Request.';
   }
@@ -76,7 +76,7 @@ const getEditStrategy = (mode: GenerationMode, plan: VertexExecutionPlan): strin
     return 'Imagen-Edit mit Quellbild und automatischer Hintergrundmaske (Background Swap), ohne explizite Zielregion.';
   }
 
-  if (mode === 'room_insert') {
+  if (mode === 'room_placement') {
     return 'Raumfoto-Insert mit Zielregion, aber in dieser Phase noch kein echter Provider-Flow.';
   }
 
@@ -363,7 +363,7 @@ const createProviderDebugRequest = (
     negativePromptText: null,
     sourceImageIncluded: true,
     maskIncluded: plan.useVertex && input.mode === 'environment_edit',
-    targetRegionIncluded: input.mode === 'room_insert' && Boolean(input.placement),
+    targetRegionIncluded: input.mode === 'room_placement' && Boolean(input.placement),
     sampleCount: clampSampleCount(input.variantsRequested),
     editStrategy: getEditStrategy(input.mode, plan),
     modelHint: getModelHint(plan.useVertex ? configuration.model : plan.model, requestType),

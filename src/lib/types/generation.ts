@@ -1,18 +1,18 @@
 import type { ImageModel } from '$lib/types/settings';
 
-export type GenerationMode = 'environment_edit' | 'material_edit' | 'room_insert';
+export type GenerationMode = 'environment_edit' | 'material_edit' | 'room_placement';
 export type GenerationStatus = 'pending' | 'running' | 'succeeded' | 'failed';
-export type ProtectionRuleKey =
-  | 'preserveObject'
-  | 'preservePerspective'
-  | 'preserveFrame'
-  | 'noExtraFurniture'
-  | 'changeEnvironmentFirst'
-  | 'preserveForm'
-  | 'preserveConstruction'
-  | 'preserveBackground'
-  | 'preserveLight'
-  | 'adaptLighting';
+export type StylePreset = 'original' | 'minimal' | 'warm' | 'modern';
+export type LightPreset = 'original' | 'warm' | 'bright' | 'dramatic';
+export type RoomPreset =
+  | 'none'
+  | 'modern_living'
+  | 'scandinavian'
+  | 'landhaus'
+  | 'loft'
+  | 'office'
+  | 'childrens_room';
+export type ProtectionRuleKey = keyof ProtectionRules;
 
 export type GenerationPlacement = {
   roomImageId: string;
@@ -22,7 +22,23 @@ export type GenerationPlacement = {
   height: number;
 } | null;
 
-export type GenerationProtectionRules = Partial<Record<ProtectionRuleKey, boolean>>;
+export type ProtectionRules = {
+  preserveObject: boolean;
+  preservePerspective: boolean;
+  preserveCrop: boolean;
+  noExtraFurniture: boolean;
+  changesOnlyEnvironment: boolean;
+};
+
+export const DEFAULT_PROTECTION_RULES: ProtectionRules = {
+  preserveObject: true,
+  preservePerspective: true,
+  preserveCrop: true,
+  noExtraFurniture: true,
+  changesOnlyEnvironment: true
+};
+
+export type GenerationProtectionRules = Partial<ProtectionRules>;
 
 export type GenerationRuntimeOptions = {
   providerPreference?: 'real' | 'fake';
@@ -31,20 +47,32 @@ export type GenerationRuntimeOptions = {
   imageModel?: ImageModel;
 };
 
+export interface GenerationRequest {
+  mode: GenerationMode;
+  userInput: string;
+  stylePreset: StylePreset;
+  lightPreset: LightPreset;
+  roomPreset: RoomPreset;
+  protectionRules: ProtectionRules;
+  variantsRequested: number;
+}
+
 export type CreateGenerationInput = {
   projectId: string;
   sourceImageId: string;
   mode: GenerationMode;
+  userInput?: string;
+  stylePreset: StylePreset;
+  lightPreset: LightPreset;
+  roomPreset?: RoomPreset;
+  protectionRules?: ProtectionRules;
   variantsRequested: number;
-  stylePreset: string;
-  lightPreset: string;
-  instructions: string;
   targetMaterial: string | null;
   surfaceDescription: string;
   preserveObject: boolean;
   preservePerspective: boolean;
   placement: GenerationPlacement;
-  protectionRules?: GenerationProtectionRules;
+  instructions?: string;
 };
 
 export type PromptPresetEffect = {

@@ -4,6 +4,7 @@ import type { PageServerLoad } from './$types';
 import { imageService } from '$lib/server/services/ImageService';
 import { presetService } from '$lib/server/services/PresetService';
 import { projectService } from '$lib/server/services/ProjectService';
+import type { RoomPreset } from '$lib/types/generation';
 
 const toPresetValue = (name: string) =>
   name
@@ -19,8 +20,18 @@ const readString = (value: unknown, fallback = '') =>
 const readMode = (value: unknown): 'environment_edit' | 'material_edit' =>
   value === 'material_edit' ? 'material_edit' : 'environment_edit';
 
+const readRoomPreset = (value: unknown): RoomPreset =>
+  value === 'modern_living' ||
+  value === 'scandinavian' ||
+  value === 'landhaus' ||
+  value === 'loft' ||
+  value === 'office' ||
+  value === 'childrens_room'
+    ? value
+    : 'none';
+
 const readVariants = (value: unknown) =>
-  typeof value === 'number' && value >= 1 && value <= 4 ? String(value) : '2';
+  typeof value === 'number' && value >= 1 && value <= 4 ? String(value) : '1';
 
 export const load: PageServerLoad = async ({ params }) => {
   try {
@@ -44,10 +55,11 @@ export const load: PageServerLoad = async ({ params }) => {
         mode: initialMode,
         stylePreset: readString(settingsSnapshot?.stylePreset, 'original'),
         lightPreset: readString(settingsSnapshot?.lightPreset, 'original'),
+        roomPreset: readRoomPreset(settingsSnapshot?.roomPreset),
         variantsRequested: readVariants(settingsSnapshot?.variantsRequested),
-        instructions: readString(settingsSnapshot?.instructions),
-        targetMaterial: readString(settingsSnapshot?.targetMaterial, 'oak-light'),
-        surfaceDescription: readString(settingsSnapshot?.surfaceDescription)
+        instructions: readString(settingsSnapshot?.userInput ?? settingsSnapshot?.instructions),
+        targetMaterial: readString(settingsSnapshot?.targetMaterial, ''),
+        surfaceDescription: readString(settingsSnapshot?.surfaceDescription, '')
       },
       styleOptions: presets
         .filter((preset) => preset.category === 'style')

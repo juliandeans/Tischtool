@@ -258,7 +258,7 @@ export class ImageService {
 
   async listGeneratedImagesByMode(
     projectId: string,
-    mode: Extract<GenerationMode, 'environment_edit' | 'material_edit' | 'room_insert'>
+    mode: Extract<GenerationMode, 'environment_edit' | 'material_edit' | 'room_placement'>
   ): Promise<LibraryImageListItem[]> {
     if (!isDatabaseConfigured()) {
       return [];
@@ -419,7 +419,7 @@ export class ImageService {
     const modeConfig =
       input.mode === 'material_edit'
         ? { label: 'MAT', suffix: 'mat', subtitle: 'Material Fake Flow' }
-        : input.mode === 'room_insert'
+        : input.mode === 'room_placement'
           ? { label: 'ROOM', suffix: 'room', subtitle: 'Room Fake Flow' }
           : { label: 'ENV', suffix: 'env', subtitle: 'Environment Fake Flow' };
     const variantLabel = `${modeConfig.label} ${input.variantIndex + 1}`;
@@ -487,7 +487,7 @@ export class ImageService {
         bytesChanged: sourceSha256 !== outputSha256,
         reasons
       };
-    } else if (input.mode === 'room_insert' && input.placement) {
+    } else if (input.mode === 'room_placement' && input.placement) {
       const roomImage = await this.getImage(input.placement.roomImageId);
       const roomBytes = await storage.readAsset(roomImage.filePath);
       const furnitureBuffer = await sharp(sourceBytes)
@@ -559,7 +559,7 @@ export class ImageService {
         ? sourceImage.settingsSnapshot.originalFileName
         : imageTitleFromPath(sourceImage.filePath);
     const roomBaseName =
-      input.mode === 'room_insert' && input.placement
+      input.mode === 'room_placement' && input.placement
         ? imageTitleFromPath((await this.getImage(input.placement.roomImageId)).filePath)
         : null;
 
@@ -577,22 +577,24 @@ export class ImageService {
         mimeType: 'image/png',
         width: metadata.width ?? sourceImage.width,
         height: metadata.height ?? sourceImage.height,
-        placementX: input.mode === 'room_insert' && input.placement ? input.placement.x : null,
-        placementY: input.mode === 'room_insert' && input.placement ? input.placement.y : null,
+        placementX: input.mode === 'room_placement' && input.placement ? input.placement.x : null,
+        placementY: input.mode === 'room_placement' && input.placement ? input.placement.y : null,
         placementWidth:
-          input.mode === 'room_insert' && input.placement ? input.placement.width : null,
+          input.mode === 'room_placement' && input.placement ? input.placement.width : null,
         placementHeight:
-          input.mode === 'room_insert' && input.placement ? input.placement.height : null,
+          input.mode === 'room_placement' && input.placement ? input.placement.height : null,
         promptSnapshot: input.promptSnapshot,
         settingsSnapshot: {
           ...input.settingsSnapshot,
           originalFileName:
-            input.mode === 'room_insert' && roomBaseName
+            input.mode === 'room_placement' && roomBaseName
               ? `${originalBaseName}-in-${roomBaseName}-${input.variantIndex + 1}`
               : `${originalBaseName}-${modeConfig.suffix}-${input.variantIndex + 1}`,
           sourceImageId: sourceImage.id,
           roomImageId:
-            input.mode === 'room_insert' && input.placement ? input.placement.roomImageId : null,
+            input.mode === 'room_placement' && input.placement
+              ? input.placement.roomImageId
+              : null,
           fakeGeneration: input.generatedAsset ? false : true,
           provider: input.generatedAsset?.provider ?? 'dev-fake',
           storageTransformDebug: processingDebug

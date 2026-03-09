@@ -85,7 +85,7 @@ export class GenerationService {
       throw new Error('Source image does not belong to the provided project.');
     }
 
-    if (input.mode === 'room_insert') {
+    if (input.mode === 'room_placement') {
       const validation = roomPlacementService.validatePlacement(normalizedPlacement);
 
       if (!validation.valid) {
@@ -93,7 +93,7 @@ export class GenerationService {
       }
 
       if (!normalizedPlacement) {
-        throw new Error('Placement is required for room_insert mode.');
+        throw new Error('Placement is required for room_placement mode.');
       }
 
       if (normalizedPlacement.roomImageId === sourceImage.id) {

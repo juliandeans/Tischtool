@@ -1,11 +1,12 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
 
+  import ModeTabs from '$lib/components/editor/ModeTabs.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
-  import type { GenerationProtectionRules } from '$lib/types/generation';
+  import { DEFAULT_PROTECTION_RULES, type RoomPreset } from '$lib/types/generation';
   import type { ImagePlacement } from '$lib/types/image';
   import type { PresetOption } from '$lib/types/preset';
 
@@ -14,13 +15,12 @@
   export let furnitureImageId = '';
   export let stylePreset = 'original';
   export let lightPreset = 'original';
+  export let roomPreset: RoomPreset = 'modern_living';
   export let variantsRequested = '1';
   export let instructions = '';
   export let projectOptions: PresetOption[] = [];
   export let roomImageOptions: PresetOption[] = [];
   export let furnitureImageOptions: PresetOption[] = [];
-  export let styleOptions: PresetOption[] = [];
-  export let lightOptions: PresetOption[] = [];
   export let placement: ImagePlacement | null = null;
   export let roomImageLabel = '';
   export let furnitureImageLabel = '';
@@ -32,6 +32,7 @@
   export let uploadSuccess = '';
 
   const dispatch = createEventDispatcher<{
+    modechange: 'environment_edit' | 'material_edit' | 'room_placement';
     projectchange: string;
     uploadroom: { file: File };
     generate: {
@@ -39,24 +40,51 @@
       furnitureImageId: string;
       stylePreset: string;
       lightPreset: string;
+      roomPreset: RoomPreset;
       variantsRequested: number;
+      userInput: string;
       instructions: string;
       preserveObject: boolean;
       preservePerspective: boolean;
-      protectionRules: GenerationProtectionRules;
+      protectionRules: typeof DEFAULT_PROTECTION_RULES;
     };
     statechange: {
       roomImageId: string;
       furnitureImageId: string;
       stylePreset: string;
       lightPreset: string;
+      roomPreset: RoomPreset;
       variantsRequested: number;
+      userInput: string;
       instructions: string;
       preserveObject: boolean;
       preservePerspective: boolean;
-      protectionRules: GenerationProtectionRules;
+      protectionRules: typeof DEFAULT_PROTECTION_RULES;
     };
   }>();
+
+  const styleOptions = [
+    { value: 'original', label: 'Original' },
+    { value: 'minimal', label: 'Minimal' },
+    { value: 'warm', label: 'Warm' },
+    { value: 'modern', label: 'Modern' }
+  ];
+
+  const lightOptions = [
+    { value: 'original', label: 'Original' },
+    { value: 'warm', label: 'Warm' },
+    { value: 'bright', label: 'Hell' },
+    { value: 'dramatic', label: 'Dramatisch' }
+  ];
+
+  const roomContextOptions = [
+    { value: 'modern_living', label: 'Modernes Wohnzimmer' },
+    { value: 'scandinavian', label: 'Skandinavisch' },
+    { value: 'landhaus', label: 'Landhaus' },
+    { value: 'loft', label: 'Loft / Industrial' },
+    { value: 'office', label: 'Büro / Arbeitszimmer' },
+    { value: 'childrens_room', label: 'Kinderzimmer' }
+  ];
 
   let roomFile: File | null = null;
 
@@ -65,25 +93,20 @@
     furnitureImageId,
     stylePreset,
     lightPreset,
+    roomPreset,
     variantsRequested: Number(variantsRequested),
+    userInput: instructions.trim(),
     instructions: instructions.trim(),
     preserveObject: true,
     preservePerspective: true,
-    protectionRules: {
-      preserveObject: true,
-      preservePerspective: true,
-      noExtraFurniture: true,
-      adaptLighting: true
-    }
+    protectionRules: DEFAULT_PROTECTION_RULES
   });
 
   const submitUpload = () => {
-    if (!roomFile) {
-      return;
+    if (roomFile) {
+      dispatch('uploadroom', { file: roomFile });
+      roomFile = null;
     }
-
-    dispatch('uploadroom', { file: roomFile });
-    roomFile = null;
   };
 
   const submitGenerate = () => {
@@ -96,9 +119,11 @@
 <div class="stack">
   <Card accent="red">
     <div class="stack">
-      <div class="eyebrow">Raumfoto</div>
-      <h2>Raumfoto + Möbelbild</h2>
-      <p class="muted">Eigener MVP-Flow für Kundenfotos mit Klick oder Zielbox.</p>
+      <div>
+        <div class="eyebrow">Modus</div>
+        <h2>Stück platzieren</h2>
+      </div>
+      <ModeTabs value="room_placement" on:change={(event) => dispatch('modechange', event.detail)} />
     </div>
   </Card>
 
@@ -110,6 +135,14 @@
         label="Projekt"
         options={projectOptions}
         on:change={() => dispatch('projectchange', projectId)}
+      />
+
+      <Select
+        bind:value={roomPreset}
+        id="room-context"
+        label="Raumkontext"
+        description="Pflichtfeld für Stück platzieren."
+        options={roomContextOptions}
       />
 
       <Select
@@ -150,7 +183,6 @@
       />
 
       <Select bind:value={stylePreset} id="room-style" label="Stil" options={styleOptions} />
-
       <Select bind:value={lightPreset} id="room-light" label="Licht" options={lightOptions} />
 
       <Select
@@ -170,7 +202,7 @@
         id="room-notes"
         label="Zusätzliche Hinweise"
         multiline
-        placeholder="z. B. Tisch näher an die Wand, wohnlicher Gesamteindruck"
+        placeholder="z. B. Sofa näher ans Fenster, ruhigerer Hintergrund, weniger Dekoration"
       />
 
       <Card accent="yellow">

@@ -8,14 +8,25 @@ import {
   readProviderPreference
 } from '$lib/server/provider-settings';
 import { createDebugRunId } from '$lib/server/vertex/debug';
-import type { GenerationMode } from '$lib/types/generation';
+import {
+  DEFAULT_PROTECTION_RULES,
+  type GenerationMode,
+  type RoomPreset,
+  type StylePreset,
+  type LightPreset
+} from '$lib/types/generation';
 import { generationService } from '$lib/server/services/GenerationService';
 
 const isGenerationMode = (value: string): value is GenerationMode =>
-  value === 'environment_edit' || value === 'material_edit' || value === 'room_insert';
+  value === 'environment_edit' || value === 'material_edit' || value === 'room_placement';
 
 const readProtectionRules = (value: unknown) =>
-  value && typeof value === 'object' ? (value as Record<string, boolean>) : undefined;
+  value && typeof value === 'object'
+    ? {
+        ...DEFAULT_PROTECTION_RULES,
+        ...(value as Record<string, boolean>)
+      }
+    : DEFAULT_PROTECTION_RULES;
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
   const debugRunId = createDebugRunId();
@@ -41,8 +52,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         sourceImageId: body.sourceImageId,
         mode: body.mode,
         variantsRequested: body.variantsRequested,
-        stylePreset: body.stylePreset ?? 'original',
-        lightPreset: body.lightPreset ?? 'original',
+        userInput: body.userInput ?? body.instructions ?? '',
+        stylePreset: (body.stylePreset ?? 'original') as StylePreset,
+        lightPreset: (body.lightPreset ?? 'original') as LightPreset,
+        roomPreset: (body.roomPreset ?? 'none') as RoomPreset,
         instructions: body.instructions ?? '',
         targetMaterial: typeof body.targetMaterial === 'string' ? body.targetMaterial : null,
         surfaceDescription: body.surfaceDescription ?? '',

@@ -14,6 +14,8 @@ const toPresetValue = (name: string) =>
 
 export const load: PageServerLoad = async ({ url }) => {
   const requestedProjectId = url.searchParams.get('projectId');
+  const requestedRoomImageId = url.searchParams.get('roomImageId');
+  const requestedFurnitureImageId = url.searchParams.get('furnitureImageId');
   const projects = await projectService.listProjects();
   const selectedProjectId =
     requestedProjectId && projects.some((project) => project.id === requestedProjectId)
@@ -24,13 +26,15 @@ export const load: PageServerLoad = async ({ url }) => {
     selectedProjectId ? imageService.listLibraryImages(selectedProjectId) : Promise.resolve([]),
     presetService.listPresets(),
     selectedProjectId
-      ? imageService.listGeneratedImagesByMode(selectedProjectId, 'room_insert')
+      ? imageService.listGeneratedImagesByMode(selectedProjectId, 'room_placement')
       : Promise.resolve([])
   ]);
 
   return {
     projects,
     selectedProjectId,
+    selectedRoomImageId: requestedRoomImageId,
+    selectedFurnitureImageId: requestedFurnitureImageId,
     images,
     roomInsertResults,
     styleOptions: presets

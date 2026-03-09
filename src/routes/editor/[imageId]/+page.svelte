@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { invalidateAll } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   import { navigating } from '$app/stores';
 
   import Button from '$lib/components/ui/Button.svelte';
@@ -10,7 +10,7 @@
   import LibraryGrid from '$lib/components/library/LibraryGrid.svelte';
   import PromptDebugPanel from '$lib/components/ui/PromptDebugPanel.svelte';
   import type { PostGenerationPreviewResponse, PostGenerationResponse } from '$lib/types/api';
-  import type { PromptDebugPreview } from '$lib/types/generation';
+  import type { GenerationMode, PromptDebugPreview } from '$lib/types/generation';
   import { toShortDate } from '$lib/utils/dates';
 
   export let data;
@@ -18,18 +18,20 @@
   let generationError = '';
   let generationSuccess = '';
   let isGenerating = false;
-  let activeMode = data.editorDefaults.mode;
+  let activeMode: GenerationMode = data.editorDefaults.mode;
   let promptPreview: PromptDebugPreview | null = null;
   let promptPreviewError = '';
   let promptPreviewLoading = false;
   let latestPromptDebug: PromptDebugPreview | null = null;
   let editorState: {
-    mode: 'environment_edit' | 'material_edit';
+    mode: 'environment_edit' | 'material_edit' | 'room_placement';
     stylePreset: string;
     lightPreset: string;
+    roomPreset: string;
     variantsRequested: number;
+    userInput: string;
     instructions: string;
-    targetMaterial: string | null;
+    targetMaterial: null;
     surfaceDescription: string;
     preserveObject: boolean;
     preservePerspective: boolean;
@@ -59,6 +61,8 @@
         variantsRequested: editorState.variantsRequested,
         stylePreset: editorState.stylePreset,
         lightPreset: editorState.lightPreset,
+        roomPreset: editorState.roomPreset,
+        userInput: editorState.userInput,
         instructions: editorState.instructions,
         targetMaterial: editorState.targetMaterial,
         surfaceDescription: editorState.surfaceDescription,
@@ -98,6 +102,12 @@
   const handleGenerate = async (event: CustomEvent) => {
     generationError = '';
     generationSuccess = '';
+
+    if (event.detail.mode === 'room_placement') {
+      await goto(`/room-insert?projectId=${data.project.id}&furnitureImageId=${data.image.id}`);
+      return;
+    }
+
     isGenerating = true;
 
     const response = await fetch('/api/generations', {
@@ -112,6 +122,8 @@
         variantsRequested: event.detail.variantsRequested,
         stylePreset: event.detail.stylePreset,
         lightPreset: event.detail.lightPreset,
+        roomPreset: event.detail.roomPreset,
+        userInput: event.detail.userInput,
         instructions: event.detail.instructions,
         targetMaterial: event.detail.targetMaterial,
         surfaceDescription: event.detail.surfaceDescription,
@@ -157,16 +169,16 @@
       initialInstructions={data.editorDefaults.instructions}
       initialLight={data.editorDefaults.lightPreset}
       initialMode={data.editorDefaults.mode}
+      initialRoomPreset={data.editorDefaults.roomPreset}
       initialStyle={data.editorDefaults.stylePreset}
-      initialSurfaceDescription={data.editorDefaults.surfaceDescription}
-      initialTargetMaterial={data.editorDefaults.targetMaterial}
       initialVariants={data.editorDefaults.variantsRequested}
       submitting={isGenerating}
-      styleOptions={data.styleOptions}
-      lightOptions={data.lightOptions}
       on:generate={handleGenerate}
-      on:modechange={(event) => {
+      on:modechange={async (event) => {
         activeMode = event.detail.mode;
+        if (event.detail.mode === 'room_placement') {
+          await goto(`/room-insert?projectId=${data.project.id}&furnitureImageId=${data.image.id}`);
+        }
       }}
       on:statechange={(event) => {
         editorState = event.detail;
@@ -204,7 +216,11 @@
         <strong>Versionierung</strong>
         <span class="muted">Projekt: {data.project.name}</span>
         <span class="muted"
-          >Modus: {activeMode === 'material_edit' ? 'Material Edit' : 'Environment Edit'}</span
+          >Modus: {activeMode === 'material_edit'
+            ? 'Stück modellieren'
+            : activeMode === 'room_placement'
+              ? 'Stück platzieren'
+              : 'Umgebung'}</span
         >
       </div>
       <div class="cluster">
