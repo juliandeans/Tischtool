@@ -75,20 +75,33 @@ export async function callGeminiImageEdit(
   accessToken: string,
   model: string = GEMINI_IMAGE_MODEL
 ): Promise<GeminiImageEditOutput> {
+  const originalSecondaryImageBytes = input.secondaryImageBase64
+    ? Buffer.from(input.secondaryImageBase64, 'base64')
+    : null;
+  const originalSecondaryMetadata = originalSecondaryImageBytes
+    ? await sharp(originalSecondaryImageBytes).rotate().metadata()
+    : null;
+  const originalRoomWidth = originalSecondaryMetadata?.width ?? null;
+  const originalRoomHeight = originalSecondaryMetadata?.height ?? null;
   const normalizedImageBytes = await sharp(Buffer.from(input.sourceImageBase64, 'base64'))
     .rotate()
-    .png()
+    .resize({ width: 1200, withoutEnlargement: true })
+    .jpeg({ quality: 85 })
     .toBuffer();
   const normalizedSecondaryImageBytes =
     input.secondaryImageBase64 && input.secondaryImageMimeType
-      ? await sharp(Buffer.from(input.secondaryImageBase64, 'base64')).rotate().png().toBuffer()
+      ? await sharp(Buffer.from(input.secondaryImageBase64, 'base64'))
+          .rotate()
+          .resize({ width: 1500, withoutEnlargement: true })
+          .jpeg({ quality: 85 })
+          .toBuffer()
       : null;
   const normalizedInput: GeminiImageEditInput = {
     ...input,
     sourceImageBase64: normalizedImageBytes.toString('base64'),
-    sourceImageMimeType: 'image/png',
+    sourceImageMimeType: 'image/jpeg',
     secondaryImageBase64: normalizedSecondaryImageBytes?.toString('base64'),
-    secondaryImageMimeType: normalizedSecondaryImageBytes ? 'image/png' : undefined
+    secondaryImageMimeType: normalizedSecondaryImageBytes ? 'image/jpeg' : undefined
   };
   const primaryBase64 = normalizedInput.sourceImageBase64;
   const secondaryBase64 = normalizedInput.secondaryImageBase64;
@@ -141,9 +154,39 @@ export async function callGeminiImageEdit(
     throw new Error('Gemini response does not contain an image part.');
   }
 
+  const geminiOutputBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
+  let finalImageBuffer: Uint8Array = geminiOutputBuffer;
+  let finalMimeType = imagePart.inlineData.mimeType || 'image/png';
+
+  if (originalRoomWidth && originalRoomHeight && originalSecondaryImageBytes) {
+    const beforeMetadata = await sharp(geminiOutputBuffer).metadata();
+    const outputResized = await sharp(geminiOutputBuffer)
+      .resize({
+        width: originalRoomWidth,
+        height: originalRoomHeight,
+        fit: 'cover',
+        position: 'centre'
+      })
+      .png()
+      .toBuffer();
+
+    console.log('[debug][gemini] dimension-correction', {
+      inputWidth: originalRoomWidth,
+      inputHeight: originalRoomHeight,
+      outputBeforeCorrection: {
+        w: beforeMetadata.width ?? null,
+        h: beforeMetadata.height ?? null
+      },
+      corrected: true
+    });
+
+    finalImageBuffer = outputResized;
+    finalMimeType = 'image/png';
+  }
+
   return {
-    imageBase64: imagePart.inlineData.data,
-    mimeType: imagePart.inlineData.mimeType || 'image/png',
+    imageBase64: Buffer.from(finalImageBuffer).toString('base64'),
+    mimeType: finalMimeType,
     text: textPart?.text
   };
 }

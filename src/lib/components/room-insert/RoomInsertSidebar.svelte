@@ -12,7 +12,7 @@
   export let furnitureImageId = '';
   export let stylePreset = 'original';
   export let lightPreset = 'original';
-  export let roomPreset: RoomPreset = 'modern_living';
+  export let roomPreset: RoomPreset = 'none';
   export let variantsRequested = '1';
   export let instructions = '';
   export let submitting = false;
@@ -109,13 +109,7 @@
 
   <Card>
     <form class="stack" on:submit|preventDefault={submitGenerate}>
-      <Select
-        bind:value={roomPreset}
-        id="room-context"
-        label="Raumkontext"
-        description="Pflichtfeld für Stück platzieren."
-        options={roomContextOptions}
-      />
+      <Select bind:value={roomPreset} id="room-context" label="Raum" options={roomContextOptions} />
 
       <Select bind:value={stylePreset} id="room-style" label="Stil" options={styleOptions} />
       <Select bind:value={lightPreset} id="room-light" label="Licht" options={lightOptions} />
@@ -152,7 +146,7 @@
         loading={submitting}
         disabled={!roomImageId || !furnitureImageId}
       >
-        Raumvariante generieren
+        Implementieren
       </Button>
     </form>
   </Card>

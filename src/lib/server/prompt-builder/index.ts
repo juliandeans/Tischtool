@@ -289,6 +289,11 @@ const createRoomPlacementPromptText = (input: CreateGenerationInput): string => 
       `Breite ca. ${percentages?.width ?? 0}% der Bildbreite.`
     ].join('\n'),
     [
+      'Das Ausgabebild muss exakt dasselbe Seitenverhältnis und dieselbe',
+      'Bildgröße wie Bild 2 haben. Kein Zuschneiden, kein Beschneiden,',
+      'keine Formatänderung, keine Rotation.'
+    ].join('\n'),
+    [
       'Behalte unverändert:',
       'Den Raum aus Bild 2 exakt – Wände, Boden, Decke, Licht, Perspektive,',
       'alle vorhandenen Möbel und Dekorationen.'
