@@ -10,15 +10,19 @@
   }>();
 
   const MODES: Array<{ value: GenerationMode; label: string }> = [
-    { value: 'room_placement', label: 'Stück platzieren' },
     { value: 'environment_edit', label: 'Umgebung' },
-    { value: 'material_edit', label: 'Stück modellieren' }
+    { value: 'material_edit', label: 'Stück modellieren' },
+    { value: 'room_placement', label: 'Stück platzieren' }
   ];
 </script>
 
 <div class="tabs" aria-label="Modus-Auswahl">
-  {#each MODES as mode}
+  {#each MODES as mode, index}
     <button
+      class:tabs__button={true}
+      class:tabs__button--red={index === 0}
+      class:tabs__button--yellow={index === 1}
+      class:tabs__button--blue={index === 2}
       class:active={value === mode.value}
       aria-pressed={value === mode.value}
       type="button"
@@ -32,28 +36,44 @@
 <style>
   .tabs {
     display: grid;
-    gap: 10px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    grid-template-columns: 1fr;
   }
 
-  button {
+  .tabs__button {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-button);
+    border-radius: 2px;
     box-shadow: var(--color-shadow-inset);
-    min-height: 42px;
-    padding: 0 14px;
+    min-height: 44px;
+    padding: 10px 14px;
+    text-align: left;
   }
 
-  button.active {
+  .tabs__button--red {
+    border-color: rgba(227, 58, 44, 0.55);
+  }
+
+  .tabs__button--yellow {
+    border-color: rgba(242, 197, 0, 0.75);
+  }
+
+  .tabs__button--blue {
+    border-color: rgba(0, 87, 184, 0.55);
+  }
+
+  .tabs__button--red.active {
+    background: rgba(227, 58, 44, 0.06);
+    color: var(--color-red);
+  }
+
+  .tabs__button--yellow.active {
+    background: rgba(242, 197, 0, 0.1);
+    color: #8a6700;
+  }
+
+  .tabs__button--blue.active {
     background: rgba(0, 87, 184, 0.08);
-    border-color: var(--color-blue);
     color: var(--color-blue);
-  }
-
-  @media (max-width: 720px) {
-    .tabs {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

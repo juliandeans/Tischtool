@@ -9,6 +9,7 @@
   import {
     DEFAULT_PROTECTION_RULES,
     type GenerationMode,
+    type MaterialEditSubMode,
     type ProtectionRules,
     type RoomPreset
   } from '$lib/types/generation';
@@ -19,6 +20,7 @@
   export let initialVariants = '1';
   export let initialInstructions = '';
   export let initialRoomPreset: RoomPreset = 'none';
+  export let initialMaterialEditSubMode: MaterialEditSubMode = 'surface';
   export let submitting = false;
   export let error = '';
 
@@ -28,6 +30,7 @@
       stylePreset: string;
       lightPreset: string;
       roomPreset: RoomPreset;
+      materialEditSubMode: MaterialEditSubMode;
       variantsRequested: number;
       userInput: string;
       instructions: string;
@@ -45,6 +48,7 @@
       stylePreset: string;
       lightPreset: string;
       roomPreset: RoomPreset;
+      materialEditSubMode: MaterialEditSubMode;
       variantsRequested: number;
       userInput: string;
       instructions: string;
@@ -80,27 +84,33 @@
     { value: 'childrens_room', label: 'Kinderzimmer' }
   ];
 
+  const materialSubModes: Array<{
+    value: MaterialEditSubMode;
+    label: string;
+    experimental?: boolean;
+  }> = [
+    { value: 'surface', label: 'Oberfläche' },
+    { value: 'form', label: 'Form', experimental: true },
+    { value: 'style', label: 'Stil', experimental: true }
+  ];
+
   let mode = initialMode;
   let stylePreset = initialStyle;
   let lightPreset = initialLight;
   let roomPreset = initialRoomPreset;
+  let materialEditSubMode = initialMaterialEditSubMode;
   let variantsRequested = initialVariants;
   let userInput = initialInstructions;
   let showProtectionRules = false;
+  let localValidationError = '';
   let protectionRules: ProtectionRules = { ...DEFAULT_PROTECTION_RULES };
-
-  $: if (mode === 'material_edit') {
-    protectionRules = {
-      ...protectionRules,
-      changesOnlyEnvironment: false
-    };
-  }
 
   const buildPayload = () => ({
     mode,
-    stylePreset,
+    stylePreset: mode === 'material_edit' ? 'original' : stylePreset,
     lightPreset: mode === 'material_edit' ? 'original' : lightPreset,
-    roomPreset,
+    roomPreset: mode === 'material_edit' ? 'none' : roomPreset,
+    materialEditSubMode,
     variantsRequested: Number(variantsRequested),
     userInput: userInput.trim(),
     instructions: userInput.trim(),
@@ -111,25 +121,29 @@
     protectionRules
   });
 
-  const ruleItems: Array<{ key: keyof ProtectionRules; label: string }> =
-    mode === 'material_edit'
-      ? [
-          { key: 'preserveObject', label: 'Objekt erhalten' },
-          { key: 'preservePerspective', label: 'Perspektive erhalten' },
-          { key: 'preserveCrop', label: 'Bildausschnitt möglichst erhalten' },
-          { key: 'noExtraFurniture', label: 'Keine zusätzlichen Möbel' }
-        ]
-      : [
-          { key: 'preserveObject', label: 'Objekt erhalten' },
-          { key: 'preservePerspective', label: 'Perspektive erhalten' },
-          { key: 'preserveCrop', label: 'Bildausschnitt möglichst erhalten' },
-          { key: 'noExtraFurniture', label: 'Keine zusätzlichen Möbel' },
-          { key: 'changesOnlyEnvironment', label: 'Änderungen primär an der Umgebung' }
-        ];
+  const ruleItems: Array<{ key: keyof ProtectionRules; label: string }> = [
+    { key: 'preserveObject', label: 'Objekt erhalten' },
+    { key: 'preservePerspective', label: 'Perspektive erhalten' },
+    { key: 'preserveCrop', label: 'Bildausschnitt möglichst erhalten' },
+    { key: 'noExtraFurniture', label: 'Keine zusätzlichen Möbel' },
+    { key: 'changesOnlyEnvironment', label: 'Änderungen primär an der Umgebung' }
+  ];
 
   const submit = () => {
-    dispatch('generate', buildPayload());
+    const payload = buildPayload();
+
+    if (payload.mode === 'material_edit' && !payload.userInput) {
+      localValidationError = 'Bitte beschreibe was du ändern möchtest.';
+      return;
+    }
+
+    localValidationError = '';
+    dispatch('generate', payload);
   };
+
+  $: if (mode !== 'material_edit') {
+    localValidationError = '';
+  }
 
   $: dispatch('statechange', buildPayload());
 </script>
@@ -151,28 +165,49 @@
         value={mode}
         on:change={(event) => {
           mode = event.detail;
-          if (mode === 'material_edit' && roomPreset === 'none') {
-            roomPreset = 'none';
-          }
           dispatch('modechange', { mode });
         }}
       />
+
+      {#if mode === 'material_edit'}
+        <div class="submode-divider" aria-hidden="true"></div>
+        <div class="submode-group" aria-label="Material-Sub-Modus">
+          {#each materialSubModes as subMode, index}
+            <button
+              type="button"
+              class:active={materialEditSubMode === subMode.value}
+              class:submode-button--blue={index === 0}
+              class:submode-button--yellow={index === 1}
+              class:submode-button--red={index === 2}
+              class="submode-button"
+              on:click={() => {
+                materialEditSubMode = subMode.value;
+              }}
+            >
+              <span>{subMode.label}</span>
+              {#if subMode.experimental}
+                <span class="submode-badge">Experimentell</span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      {/if}
     </div>
   </Card>
 
   <Card>
     <form class="stack" on:submit|preventDefault={submit}>
-      <Select
-        bind:value={roomPreset}
-        id="editor-room-context"
-        label="Raumkontext"
-        description="Optionaler Zielraum für die Bildanpassung."
-        options={roomContextOptions}
-      />
-
-      <Select bind:value={stylePreset} id="editor-style" label="Stil" options={styleOptions} />
-
       {#if mode !== 'material_edit'}
+        <Select
+          bind:value={roomPreset}
+          id="editor-room-context"
+          label="Raumkontext"
+          description="Optionaler Zielraum für die Bildanpassung."
+          options={roomContextOptions}
+        />
+
+        <Select bind:value={stylePreset} id="editor-style" label="Stil" options={styleOptions} />
+
         <Select bind:value={lightPreset} id="editor-light" label="Licht" options={lightOptions} />
       {/if}
 
@@ -191,16 +226,14 @@
       <Input
         bind:value={userInput}
         id="editor-user-input"
-        label={mode === 'material_edit' ? 'Änderungen am Möbelstück' : 'Zusätzliche Hinweise'}
+        label={mode === 'material_edit' ? 'Was soll geändert werden?' : 'Änderungswünsche'}
         multiline
-        placeholder={
-          mode === 'material_edit'
-            ? 'z. B. weichere Formensprache, reduziertere Oberfläche, moderner wirken'
-            : 'z. B. gelbe Wand, Teppich austauschen, ruhigeres Gesamtbild'
-        }
+        placeholder={mode === 'material_edit'
+          ? 'z. B. feineres Holzbild, schlankere Proportionen, japanischer Designstil'
+          : 'z. B. gelbe Wand, Teppich austauschen, ruhigeres Gesamtbild'}
       />
 
-      {#if mode !== 'room_placement'}
+      {#if mode === 'environment_edit'}
         <div class="editor-sidebar__rules">
           <Card accent="yellow" class="editor-sidebar__rules-card" padded={false}>
             <details bind:open={showProtectionRules} class="editor-sidebar__disclosure">
@@ -240,6 +273,10 @@
         </div>
       {/if}
 
+      {#if localValidationError}
+        <p class="editor-sidebar__error">{localValidationError}</p>
+      {/if}
+
       {#if error}
         <p class="editor-sidebar__error">{error}</p>
       {/if}
@@ -252,6 +289,73 @@
 <style>
   h2 {
     margin: 6px 0 0;
+  }
+
+  .submode-group {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr;
+  }
+
+  .submode-divider {
+    background: linear-gradient(
+      90deg,
+      rgba(208, 203, 194, 0),
+      rgba(208, 203, 194, 1),
+      rgba(208, 203, 194, 0)
+    );
+    height: 1px;
+    margin: 2px 0 0;
+  }
+
+  .submode-button {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 2px;
+    box-shadow: var(--color-shadow-inset);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start;
+    min-height: 44px;
+    padding: 10px 14px;
+    text-align: left;
+  }
+
+  .submode-button--blue {
+    border-color: rgba(0, 87, 184, 0.55);
+  }
+
+  .submode-button--yellow {
+    border-color: rgba(242, 197, 0, 0.75);
+  }
+
+  .submode-button--red {
+    border-color: rgba(227, 58, 44, 0.55);
+  }
+
+  .submode-button--blue.active {
+    background: rgba(0, 87, 184, 0.08);
+    color: var(--color-blue);
+  }
+
+  .submode-button--yellow.active {
+    background: rgba(242, 197, 0, 0.14);
+    color: #7a5400;
+  }
+
+  .submode-button--red.active {
+    background: rgba(227, 58, 44, 0.06);
+    color: var(--color-red);
+  }
+
+  .submode-badge {
+    background: rgba(242, 197, 0, 0.24);
+    border-radius: 999px;
+    color: #7a5400;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
   }
 
   .editor-sidebar__disclosure {
@@ -331,7 +435,9 @@
     background: #fff;
     border: 1px solid var(--color-border);
     border-radius: 10px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.04);
     display: grid;
     height: 28px;
     margin: 0;
@@ -361,5 +467,12 @@
   .editor-sidebar__error {
     color: var(--color-red);
     margin: 0;
+  }
+
+  @media (max-width: 720px) {
+    .submode-button {
+      align-items: flex-start;
+      flex-direction: column;
+    }
   }
 </style>

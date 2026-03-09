@@ -21,7 +21,10 @@ export const readProviderDebugEnabled = (cookies: Cookies) =>
   cookies.get(PROVIDER_DEBUG_COOKIE) === '1';
 
 export const readImageModel = (cookies: Cookies): ImageModel =>
-  cookies.get(IMAGE_MODEL_COOKIE) === 'gemini-3-pro-image' ? 'gemini-3-pro-image' : 'imagen-3';
+  cookies.get(IMAGE_MODEL_COOKIE) === 'gemini-3-pro-image' ||
+  cookies.get(IMAGE_MODEL_COOKIE) === 'gemini-3.1-flash-image-preview'
+    ? (cookies.get(IMAGE_MODEL_COOKIE) as ImageModel)
+    : 'imagen-3';
 
 export const writeProviderPreferences = (
   cookies: Cookies,

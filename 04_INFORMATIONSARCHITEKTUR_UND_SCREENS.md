@@ -61,7 +61,7 @@ Rechte Sidebar:
 - Stil
 - Licht
 - Varianten
-- zusätzliche Hinweise
+- Änderungswünsche
 - Generieren
 
 ## Screen: Raumfoto einsetzen

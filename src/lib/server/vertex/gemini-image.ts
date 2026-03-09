@@ -1,3 +1,5 @@
+import sharp from 'sharp';
+
 export interface GeminiImageEditInput {
   sourceImageBase64: string;
   sourceImageMimeType: string;
@@ -11,9 +13,13 @@ export interface GeminiImageEditOutput {
 }
 
 export const GEMINI_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+export const GEMINI_FLASH_IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
 
-export const getGeminiGenerateContentUrl = (projectId: string) =>
-  `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/global/publishers/google/models/${GEMINI_IMAGE_MODEL}:generateContent`;
+export const getGeminiGenerateContentUrl = (
+  projectId: string,
+  modelId: string = GEMINI_IMAGE_MODEL
+) =>
+  `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/global/publishers/google/models/${modelId}:generateContent`;
 
 export const buildGeminiImageEditPayload = (input: GeminiImageEditInput) => ({
   contents: [
@@ -40,15 +46,26 @@ export const buildGeminiImageEditPayload = (input: GeminiImageEditInput) => ({
 export async function callGeminiImageEdit(
   input: GeminiImageEditInput,
   projectId: string,
-  accessToken: string
+  accessToken: string,
+  model: string = GEMINI_IMAGE_MODEL
 ): Promise<GeminiImageEditOutput> {
-  const response = await fetch(getGeminiGenerateContentUrl(projectId), {
+  const normalizedImageBytes = await sharp(Buffer.from(input.sourceImageBase64, 'base64'))
+    .rotate()
+    .png()
+    .toBuffer();
+  const normalizedInput: GeminiImageEditInput = {
+    ...input,
+    sourceImageBase64: normalizedImageBytes.toString('base64'),
+    sourceImageMimeType: 'image/png'
+  };
+
+  const response = await fetch(getGeminiGenerateContentUrl(projectId, model), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(buildGeminiImageEditPayload(input))
+    body: JSON.stringify(buildGeminiImageEditPayload(normalizedInput))
   });
 
   const payload = (await response.json()) as {

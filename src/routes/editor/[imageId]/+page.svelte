@@ -10,7 +10,7 @@
   import LibraryGrid from '$lib/components/library/LibraryGrid.svelte';
   import PromptDebugPanel from '$lib/components/ui/PromptDebugPanel.svelte';
   import type { PostGenerationPreviewResponse, PostGenerationResponse } from '$lib/types/api';
-  import type { GenerationMode, PromptDebugPreview } from '$lib/types/generation';
+  import type { GenerationMode, MaterialEditSubMode, PromptDebugPreview } from '$lib/types/generation';
   import { toShortDate } from '$lib/utils/dates';
 
   export let data;
@@ -28,6 +28,7 @@
     stylePreset: string;
     lightPreset: string;
     roomPreset: string;
+    materialEditSubMode: MaterialEditSubMode;
     variantsRequested: number;
     userInput: string;
     instructions: string;
@@ -62,6 +63,7 @@
         stylePreset: editorState.stylePreset,
         lightPreset: editorState.lightPreset,
         roomPreset: editorState.roomPreset,
+        materialEditSubMode: editorState.materialEditSubMode,
         userInput: editorState.userInput,
         instructions: editorState.instructions,
         targetMaterial: editorState.targetMaterial,
@@ -123,6 +125,7 @@
         stylePreset: event.detail.stylePreset,
         lightPreset: event.detail.lightPreset,
         roomPreset: event.detail.roomPreset,
+        materialEditSubMode: event.detail.materialEditSubMode,
         userInput: event.detail.userInput,
         instructions: event.detail.instructions,
         targetMaterial: event.detail.targetMaterial,
@@ -169,6 +172,7 @@
       initialInstructions={data.editorDefaults.instructions}
       initialLight={data.editorDefaults.lightPreset}
       initialMode={data.editorDefaults.mode}
+      initialMaterialEditSubMode={data.editorDefaults.materialEditSubMode}
       initialRoomPreset={data.editorDefaults.roomPreset}
       initialStyle={data.editorDefaults.stylePreset}
       initialVariants={data.editorDefaults.variantsRequested}

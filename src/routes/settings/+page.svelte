@@ -114,8 +114,12 @@
         label="Modell"
         value={data.providerSettings.imageModel}
         options={[
-          { value: 'imagen-3', label: 'Imagen 3' },
-          { value: 'gemini-3-pro-image', label: 'Gemini 3 Pro Image' }
+          { value: 'gemini-3-pro-image', label: 'Gemini 3 Pro Image' },
+          {
+            value: 'gemini-3.1-flash-image-preview',
+            label: 'Gemini 3.1 Flash Image'
+          },
+          { value: 'imagen-3', label: 'Imagen 3' }
         ]}
       />
 

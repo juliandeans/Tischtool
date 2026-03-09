@@ -11,6 +11,7 @@ import { createDebugRunId } from '$lib/server/vertex/debug';
 import {
   DEFAULT_PROTECTION_RULES,
   type GenerationMode,
+  type MaterialEditSubMode,
   type RoomPreset,
   type StylePreset,
   type LightPreset
@@ -19,6 +20,9 @@ import { generationService } from '$lib/server/services/GenerationService';
 
 const isGenerationMode = (value: string): value is GenerationMode =>
   value === 'environment_edit' || value === 'material_edit' || value === 'room_placement';
+
+const readMaterialEditSubMode = (value: unknown): MaterialEditSubMode =>
+  value === 'form' || value === 'style' ? value : 'surface';
 
 const readProtectionRules = (value: unknown) =>
   value && typeof value === 'object'
@@ -56,6 +60,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         stylePreset: (body.stylePreset ?? 'original') as StylePreset,
         lightPreset: (body.lightPreset ?? 'original') as LightPreset,
         roomPreset: (body.roomPreset ?? 'none') as RoomPreset,
+        materialEditSubMode: readMaterialEditSubMode(body.materialEditSubMode),
         instructions: body.instructions ?? '',
         targetMaterial: typeof body.targetMaterial === 'string' ? body.targetMaterial : null,
         surfaceDescription: body.surfaceDescription ?? '',

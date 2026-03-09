@@ -4,7 +4,7 @@ import type { PageServerLoad } from './$types';
 import { imageService } from '$lib/server/services/ImageService';
 import { presetService } from '$lib/server/services/PresetService';
 import { projectService } from '$lib/server/services/ProjectService';
-import type { RoomPreset } from '$lib/types/generation';
+import type { MaterialEditSubMode, RoomPreset } from '$lib/types/generation';
 
 const toPresetValue = (name: string) =>
   name
@@ -29,6 +29,9 @@ const readRoomPreset = (value: unknown): RoomPreset =>
   value === 'childrens_room'
     ? value
     : 'none';
+
+const readMaterialEditSubMode = (value: unknown): MaterialEditSubMode =>
+  value === 'form' || value === 'style' ? value : 'surface';
 
 const readVariants = (value: unknown) =>
   typeof value === 'number' && value >= 1 && value <= 4 ? String(value) : '1';
@@ -56,6 +59,9 @@ export const load: PageServerLoad = async ({ params }) => {
         stylePreset: readString(settingsSnapshot?.stylePreset, 'original'),
         lightPreset: readString(settingsSnapshot?.lightPreset, 'original'),
         roomPreset: readRoomPreset(settingsSnapshot?.roomPreset),
+        materialEditSubMode: readMaterialEditSubMode(
+          settingsSnapshot?.materialEditSubMode ?? promptSnapshot?.materialEditSubMode
+        ),
         variantsRequested: readVariants(settingsSnapshot?.variantsRequested),
         instructions: readString(settingsSnapshot?.userInput ?? settingsSnapshot?.instructions),
         targetMaterial: readString(settingsSnapshot?.targetMaterial, ''),

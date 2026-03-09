@@ -118,12 +118,15 @@
 
 <div class="stack">
   <Card accent="red">
-    <div class="stack">
-      <div>
+    <div class="stack room-insert__mode-stack">
+      <div class="room-insert__mode-head">
         <div class="eyebrow">Modus</div>
         <h2>Stück platzieren</h2>
       </div>
-      <ModeTabs value="room_placement" on:change={(event) => dispatch('modechange', event.detail)} />
+      <ModeTabs
+        value="room_placement"
+        on:change={(event) => dispatch('modechange', event.detail)}
+      />
     </div>
   </Card>
 
@@ -200,7 +203,7 @@
       <Input
         bind:value={instructions}
         id="room-notes"
-        label="Zusätzliche Hinweise"
+        label="Änderungswünsche"
         multiline
         placeholder="z. B. Sofa näher ans Fenster, ruhigerer Hintergrund, weniger Dekoration"
       />
@@ -252,12 +255,26 @@
     margin: 0;
   }
 
+  h2 {
+    margin-top: 6px;
+  }
+
   .stack,
   form,
   .upload-field {
     display: grid;
     gap: 8px;
     min-width: 0;
+  }
+
+  .room-insert__mode-stack {
+    gap: 16px;
+  }
+
+  .room-insert__mode-head {
+    align-content: start;
+    display: grid;
+    min-height: 72px;
   }
 
   .field-label {

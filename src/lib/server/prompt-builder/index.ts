@@ -2,6 +2,7 @@ import type {
   CreateGenerationInput,
   GenerationMode,
   GenerationRuntimeOptions,
+  MaterialEditSubMode,
   PromptDebugEntry,
   PromptDebugPreview,
   PromptInstructionDebug,
@@ -76,6 +77,10 @@ const getResolvedUserInput = (input: CreateGenerationInput) => input.userInput ?
 
 const getResolvedRoomPreset = (input: CreateGenerationInput): RoomPreset => input.roomPreset ?? 'none';
 
+const getResolvedMaterialEditSubMode = (
+  input: CreateGenerationInput
+): MaterialEditSubMode => input.materialEditSubMode ?? 'surface';
+
 const getResolvedProtectionRules = (input: CreateGenerationInput): ProtectionRules => ({
   ...DEFAULT_RULES,
   ...input.protectionRules,
@@ -123,12 +128,37 @@ function buildPreserveBlock(mode: GenerationMode, rules: ProtectionRules): strin
   return buildSection('Behalte unverändert:', lines);
 }
 
+function buildMaterialPreserveBlock(subMode: MaterialEditSubMode): string {
+  if (subMode === 'form') {
+    return buildSection('Behalte unverändert:', [
+      'Die gesamte Raumsituation exakt – Wand, Boden, Dekoration, Licht',
+      'und Perspektive.',
+      'Das Material und die Oberfläche des Möbelstücks.'
+    ]);
+  }
+
+  if (subMode === 'style') {
+    return buildSection('Behalte unverändert:', [
+      'Die gesamte Raumsituation exakt – Wand, Boden, Dekoration, Licht',
+      'und Perspektive.',
+      'Die grundlegende Funktion des Möbelstücks.'
+    ]);
+  }
+
+  return buildSection('Behalte unverändert:', [
+    'Die gesamte Raumsituation exakt – Wand, Boden, Dekoration, Licht,',
+    'Perspektive und Bildausschnitt.',
+    'Die Form, Struktur und Proportionen des Möbelstücks exakt.'
+  ]);
+}
+
 function buildChangeBlock(
   mode: GenerationMode,
   userInput: string,
   roomPreset: RoomPreset,
   stylePreset: CreateGenerationInput['stylePreset'],
-  lightPreset: CreateGenerationInput['lightPreset']
+  lightPreset: CreateGenerationInput['lightPreset'],
+  materialEditSubMode: MaterialEditSubMode
 ): string {
   const lines: string[] = [];
   const roomPresetPrompt = ROOM_PRESET_PROMPTS[roomPreset];
@@ -164,14 +194,23 @@ function buildChangeBlock(
 
   if (mode === 'material_edit') {
     const userLines = trimLines(userInput);
-    const materialLines =
-      userLines.length > 0 ? userLines : ['Material und Oberflächenwirkung des Möbelstücks.'];
-
-    if (stylePreset !== 'original') {
-      materialLines.push(`Stil: ${STYLE_PRESET_LABELS[stylePreset]}`);
+    if (materialEditSubMode === 'form') {
+      return [
+        buildSection('Ändere die Form und Proportionen des Möbelstücks:', userLines),
+        'Passe die Perspektive und den Bildausschnitt nur so weit an,',
+        'wie es für eine realistische Darstellung der neuen Form nötig ist.'
+      ].join('\n');
     }
 
-    return buildSection('Ändere folgende Aspekte am Möbelstück:', materialLines);
+    if (materialEditSubMode === 'style') {
+      return [
+        'Interpretiere das Möbelstück in folgendem Designstil neu',
+        '(Form und Oberfläche dürfen sich verändern):',
+        ...userLines
+      ].join('\n');
+    }
+
+    return buildSection('Ändere folgende Aspekte am Möbelstück:', userLines);
   }
 
   if (roomPresetPrompt) {
@@ -195,22 +234,18 @@ const getVisibleProtectionRules = (
   input: CreateGenerationInput,
   mode: GenerationMode
 ): PromptProtectionRuleDebug[] => {
-  const rules = getResolvedProtectionRules(input);
-
-  if (mode === 'room_placement') {
+  if (mode === 'room_placement' || mode === 'material_edit') {
     return [];
   }
 
-  const keys: Array<keyof ProtectionRules> =
-    mode === 'material_edit'
-      ? ['preserveObject', 'preservePerspective', 'preserveCrop', 'noExtraFurniture']
-      : [
-          'preserveObject',
-          'preservePerspective',
-          'preserveCrop',
-          'noExtraFurniture',
-          'changesOnlyEnvironment'
-        ];
+  const rules = getResolvedProtectionRules(input);
+  const keys: Array<keyof ProtectionRules> = [
+    'preserveObject',
+    'preservePerspective',
+    'preserveCrop',
+    'noExtraFurniture',
+    'changesOnlyEnvironment'
+  ];
 
   return keys.map((key) => ({
     key,
@@ -222,6 +257,11 @@ const getVisibleProtectionRules = (
 
 const getPresetEffects = (input: CreateGenerationInput): PromptPresetEffect[] => {
   const effects: PromptPresetEffect[] = [];
+
+  if (input.mode === 'material_edit') {
+    return effects;
+  }
+
   const roomPreset = getResolvedRoomPreset(input);
 
   if (roomPreset !== 'none') {
@@ -240,7 +280,7 @@ const getPresetEffects = (input: CreateGenerationInput): PromptPresetEffect[] =>
     });
   }
 
-  if (input.mode !== 'material_edit' && input.lightPreset !== 'original') {
+  if (input.lightPreset !== 'original') {
     effects.push({
       label: 'Licht-Preset',
       value: input.lightPreset,
@@ -255,15 +295,19 @@ const createPromptText = (input: CreateGenerationInput): string => {
   const roomPreset = getResolvedRoomPreset(input);
   const protectionRules = getResolvedProtectionRules(input);
   const userInput = getResolvedUserInput(input);
+  const materialEditSubMode = getResolvedMaterialEditSubMode(input);
   const blocks = [
     buildHeader(input.mode),
-    buildPreserveBlock(input.mode, protectionRules),
+    input.mode === 'material_edit'
+      ? buildMaterialPreserveBlock(materialEditSubMode)
+      : buildPreserveBlock(input.mode, protectionRules),
     buildChangeBlock(
       input.mode,
       userInput,
       roomPreset,
       input.stylePreset,
-      input.lightPreset
+      input.lightPreset,
+      materialEditSubMode
     ),
     buildFooter()
   ].filter(Boolean);
@@ -277,6 +321,7 @@ export class PromptBuilder {
       ...input,
       userInput: getResolvedUserInput(input),
       roomPreset: getResolvedRoomPreset(input),
+      materialEditSubMode: getResolvedMaterialEditSubMode(input),
       protectionRules: getResolvedProtectionRules(input)
     };
     const resolvedUserInput = normalizedInput.userInput ?? '';
@@ -319,7 +364,10 @@ export class PromptBuilder {
 
     const promptDebug: PromptDebugPreview = {
       mode: normalizedInput.mode,
-      modeLabel: MODE_LABELS[normalizedInput.mode],
+      modeLabel:
+        normalizedInput.mode === 'material_edit'
+          ? `${MODE_LABELS[normalizedInput.mode]} / ${normalizedInput.materialEditSubMode}`
+          : MODE_LABELS[normalizedInput.mode],
       systemPromptText: '',
       promptText,
       fullPromptText: promptText,

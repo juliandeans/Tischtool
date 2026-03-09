@@ -4,6 +4,7 @@ export type GenerationMode = 'environment_edit' | 'material_edit' | 'room_placem
 export type GenerationStatus = 'pending' | 'running' | 'succeeded' | 'failed';
 export type StylePreset = 'original' | 'minimal' | 'warm' | 'modern';
 export type LightPreset = 'original' | 'warm' | 'bright' | 'dramatic';
+export type MaterialEditSubMode = 'surface' | 'form' | 'style';
 export type RoomPreset =
   | 'none'
   | 'modern_living'
@@ -53,6 +54,7 @@ export interface GenerationRequest {
   stylePreset: StylePreset;
   lightPreset: LightPreset;
   roomPreset: RoomPreset;
+  materialEditSubMode?: MaterialEditSubMode;
   protectionRules: ProtectionRules;
   variantsRequested: number;
 }
@@ -65,6 +67,7 @@ export type CreateGenerationInput = {
   stylePreset: StylePreset;
   lightPreset: LightPreset;
   roomPreset?: RoomPreset;
+  materialEditSubMode?: MaterialEditSubMode;
   protectionRules?: ProtectionRules;
   variantsRequested: number;
   targetMaterial: string | null;

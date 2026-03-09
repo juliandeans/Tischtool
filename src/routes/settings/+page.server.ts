@@ -9,7 +9,9 @@ const isProviderPreference = (value: string): value is ProviderFlowPreference =>
   value === 'real' || value === 'fake';
 
 const isImageModel = (value: string): value is ImageModel =>
-  value === 'imagen-3' || value === 'gemini-3-pro-image';
+  value === 'imagen-3' ||
+  value === 'gemini-3-pro-image' ||
+  value === 'gemini-3.1-flash-image-preview';
 
 export const load: PageServerLoad = async ({ cookies }) => {
   const snapshot = await providerStatusService.getSnapshot(cookies);

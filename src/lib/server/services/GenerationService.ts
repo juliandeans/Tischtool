@@ -29,6 +29,7 @@ import {
 } from '$lib/server/vertex/image';
 import {
   callGeminiImageEdit,
+  GEMINI_FLASH_IMAGE_MODEL,
   GEMINI_IMAGE_MODEL,
   getGeminiGenerateContentUrl
 } from '$lib/server/vertex/gemini-image';
@@ -47,7 +48,13 @@ type GenerationExecutionResult = {
 };
 
 const getActiveImageModel = (runtimeOptions?: GenerationRuntimeOptions) =>
-  runtimeOptions?.imageModel === 'gemini-3-pro-image' ? 'gemini-3-pro-image' : 'imagen-3';
+  runtimeOptions?.imageModel === 'gemini-3-pro-image' ||
+  runtimeOptions?.imageModel === 'gemini-3.1-flash-image-preview'
+    ? runtimeOptions.imageModel
+    : 'imagen-3';
+
+const getGeminiModelId = (imageModel: 'gemini-3-pro-image' | 'gemini-3.1-flash-image-preview') =>
+  imageModel === 'gemini-3.1-flash-image-preview' ? GEMINI_FLASH_IMAGE_MODEL : GEMINI_IMAGE_MODEL;
 
 export class GenerationService {
   previewGeneration(input: CreateGenerationInput, runtimeOptions?: GenerationRuntimeOptions) {
@@ -132,10 +139,12 @@ export class GenerationService {
       input.variantsRequested
     );
     const useGeminiImageModel =
-      activeImageModel === 'gemini-3-pro-image' && input.mode === 'environment_edit';
+      activeImageModel !== 'imagen-3' && input.mode === 'environment_edit';
+    const geminiModelId =
+      activeImageModel === 'imagen-3' ? null : getGeminiModelId(activeImageModel);
     const requestedModel =
-      executionPlan.useVertex && useGeminiImageModel
-        ? GEMINI_IMAGE_MODEL
+      executionPlan.useVertex && useGeminiImageModel && geminiModelId
+        ? geminiModelId
         : executionPlan.model;
     const db = getDb();
 
@@ -173,6 +182,7 @@ export class GenerationService {
       runId: debugRunId,
       promptInput: {
         mode: input.mode,
+        materialEditSubMode: input.materialEditSubMode ?? null,
         stylePreset: input.stylePreset,
         lightPreset: input.lightPreset,
         instructions: input.instructions,
@@ -203,6 +213,7 @@ export class GenerationService {
         settingsJson: {
           stylePreset: input.stylePreset,
           lightPreset: input.lightPreset,
+          materialEditSubMode: input.materialEditSubMode ?? null,
           instructions: input.instructions,
           targetMaterial: input.targetMaterial,
           surfaceDescription: input.surfaceDescription,
@@ -411,22 +422,28 @@ export class GenerationService {
   }): Promise<GenerationExecutionResult> {
     try {
       const sourceImageBytes = await storage.readAsset(options.sourceImage.filePath);
-      const sourceImageBase64 = Buffer.from(sourceImageBytes).toString('base64');
       const projectId = vertexClient.getConfiguration().projectId;
       const accessToken = await vertexClient.getAccessToken();
+      const geminiModelId = getGeminiModelId(
+        options.runtimeOptions.imageModel === 'gemini-3.1-flash-image-preview'
+          ? 'gemini-3.1-flash-image-preview'
+          : 'gemini-3-pro-image'
+      );
       const providerResponses = await Promise.all(
         Array.from({ length: options.input.variantsRequested }, () =>
           callGeminiImageEdit(
             {
-              sourceImageBase64,
+              sourceImageBase64: Buffer.from(sourceImageBytes).toString('base64'),
               sourceImageMimeType: options.sourceImage.mimeType,
               promptText: options.prompt.promptText
             },
             projectId,
-            accessToken
+            accessToken,
+            geminiModelId
           )
         )
       );
+      // Flash Image returns one image per request; multiple variants stay as separate calls.
       const images = providerResponses.map((response) => ({
         bytes: Buffer.from(response.imageBase64, 'base64'),
         mimeType: response.mimeType
@@ -446,10 +463,10 @@ export class GenerationService {
       const providerDebugRun: ProviderDebugRun = {
         runId: options.runtimeOptions.debugRunId ?? createDebugRunId(),
         usedFlow: 'vertex',
-        model: GEMINI_IMAGE_MODEL,
+        model: geminiModelId,
         requestType: 'generate',
         requestEndpoint: 'generateContent',
-        endpointUrl: getGeminiGenerateContentUrl(projectId),
+        endpointUrl: getGeminiGenerateContentUrl(projectId, geminiModelId),
         sourceImageIncluded: true,
         maskIncluded: false,
         targetRegionIncluded: false,
@@ -489,7 +506,7 @@ export class GenerationService {
       };
       const providerResult: VertexGenerationResult = {
         provider: 'vertex',
-        model: GEMINI_IMAGE_MODEL,
+        model: geminiModelId,
         usage: {
           fakeGeneration: false,
           geminiTextResponses: providerResponses.map((response) => response.text ?? null)
@@ -547,6 +564,7 @@ export class GenerationService {
             debugRunId: options.runtimeOptions.debugRunId,
             stylePreset: options.input.stylePreset,
             lightPreset: options.input.lightPreset,
+            materialEditSubMode: options.input.materialEditSubMode ?? null,
             instructions: options.input.instructions,
             targetMaterial: options.input.targetMaterial,
             surfaceDescription: options.input.surfaceDescription,
@@ -628,6 +646,7 @@ export class GenerationService {
             debugRunId: options.runtimeOptions.debugRunId,
             stylePreset: options.input.stylePreset,
             lightPreset: options.input.lightPreset,
+            materialEditSubMode: options.input.materialEditSubMode ?? null,
             instructions: options.input.instructions,
             targetMaterial: options.input.targetMaterial,
             surfaceDescription: options.input.surfaceDescription,
