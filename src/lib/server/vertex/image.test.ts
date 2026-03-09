@@ -9,7 +9,7 @@ import {
 } from '$lib/server/vertex/image';
 
 describe('vertex image helpers', () => {
-  it('builds an environment_edit payload with subject image config and sample count only', () => {
+  it('builds an environment_edit payload with raw reference image and sample count only', () => {
     const payload = buildEnvironmentEditVertexPayload(
       {
         projectId: 'project-1',
@@ -35,14 +35,10 @@ describe('vertex image helpers', () => {
           prompt: 'Kontext:\n- Testprompt',
           referenceImages: [
             {
-              referenceType: 'REFERENCE_TYPE_SUBJECT',
+              referenceType: 'REFERENCE_TYPE_RAW',
               referenceId: 1,
               referenceImage: {
                 bytesBase64Encoded: 'ZmFrZS1iYXNlNjQ='
-              },
-              subjectImageConfig: {
-                subjectType: 'SUBJECT_TYPE_PRODUCT',
-                subjectDescription: 'furniture piece'
               }
             }
           ]
@@ -54,7 +50,7 @@ describe('vertex image helpers', () => {
     });
   });
 
-  it('models environment_edit as a subject-based request with sample count only', () => {
+  it('models environment_edit as a raw reference request with sample count only', () => {
     const request = vertexImageService.prepareRequest(
       {
         projectId: 'project-1',

@@ -1,3 +1,5 @@
+import type { ImageModel } from '$lib/types/settings';
+
 export type GenerationMode = 'environment_edit' | 'material_edit' | 'room_insert';
 export type GenerationStatus = 'pending' | 'running' | 'succeeded' | 'failed';
 export type ProtectionRuleKey =
@@ -26,6 +28,7 @@ export type GenerationRuntimeOptions = {
   providerPreference?: 'real' | 'fake';
   providerDebugEnabled?: boolean;
   debugRunId?: string;
+  imageModel?: ImageModel;
 };
 
 export type CreateGenerationInput = {
@@ -150,7 +153,7 @@ export type ProviderDebugRequest = {
   plannedFlow: ProviderFlow;
   fallbackReason: string | null;
   requestType: ProviderRequestType;
-  requestEndpoint: 'predict' | 'dev-fake';
+  requestEndpoint: 'predict' | 'generateContent' | 'dev-fake';
   endpointUrl: string | null;
   negativePromptText: string | null;
   sourceImageIncluded: boolean;
@@ -171,7 +174,7 @@ export type ProviderDebugRun = {
   usedFlow: ProviderFlow;
   model: string;
   requestType: ProviderRequestType;
-  requestEndpoint: 'predict' | 'dev-fake';
+  requestEndpoint: 'predict' | 'generateContent' | 'dev-fake';
   endpointUrl: string | null;
   sourceImageIncluded: boolean;
   maskIncluded: boolean;

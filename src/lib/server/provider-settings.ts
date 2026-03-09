@@ -1,9 +1,10 @@
 import type { Cookies } from '@sveltejs/kit';
 
-import type { ProviderFlowPreference } from '$lib/types/settings';
+import type { ImageModel, ProviderFlowPreference } from '$lib/types/settings';
 
 export const PROVIDER_PREFERENCE_COOKIE = 'tt-provider-preference';
 export const PROVIDER_DEBUG_COOKIE = 'tt-provider-debug';
+export const IMAGE_MODEL_COOKIE = 'tt-image-model';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -19,13 +20,18 @@ export const readProviderPreference = (cookies: Cookies): ProviderFlowPreference
 export const readProviderDebugEnabled = (cookies: Cookies) =>
   cookies.get(PROVIDER_DEBUG_COOKIE) === '1';
 
+export const readImageModel = (cookies: Cookies): ImageModel =>
+  cookies.get(IMAGE_MODEL_COOKIE) === 'gemini-3-pro-image' ? 'gemini-3-pro-image' : 'imagen-3';
+
 export const writeProviderPreferences = (
   cookies: Cookies,
   input: {
     providerPreference: ProviderFlowPreference;
     providerDebugEnabled: boolean;
+    imageModel: ImageModel;
   }
 ) => {
   cookies.set(PROVIDER_PREFERENCE_COOKIE, input.providerPreference, COOKIE_OPTIONS);
   cookies.set(PROVIDER_DEBUG_COOKIE, input.providerDebugEnabled ? '1' : '0', COOKIE_OPTIONS);
+  cookies.set(IMAGE_MODEL_COOKIE, input.imageModel, COOKIE_OPTIONS);
 };

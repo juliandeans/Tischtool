@@ -127,5 +127,12 @@ export const buildEnvironmentEditPrompt = (
   input: CreateGenerationInput,
   instructionDebug: PromptInstructionDebug
 ) => {
-  return 'The exact same wooden shelf [1] with identical structure, proportions, wood grain and color, unchanged. Sage green wall behind the shelf. A few books added on some of the shelves. Small potted plants placed on top of the shelf. Wooden parquet floor. Persian rug on the floor. Exact same camera angle, same perspective, same room layout. The shelf itself is not modified in any way. Photorealistic interior photography.';
+  return 'Edit the provided image [1].\n\nKeep the wooden shelf EXACTLY unchanged:\nsame structure, same geometry, same number of compartments, same dimensions, same wood grain, same wood color, and same positions of all boards.\nDo not rebuild, simplify, move, remove, resize, or redesign the shelf in any way.\n\nOnly modify the environment around the shelf.\n\nApply these changes:\n- Paint the wall behind the shelf a soft sage green color.\n- Add a few books neatly inside some of the shelf compartments.\n- Place two small potted plants on top of the shelf.\n\nEverything else must remain identical to the original image:\nsame camera angle, same perspective, same lighting, same parquet floor, same Persian rug, same room layout.\n\nPhotorealistic interior photo edit.';
+};
+
+export const buildEnvironmentEditPromptGemini = (
+  input: CreateGenerationInput,
+  instructionDebug: PromptInstructionDebug
+) => {
+  return 'Du bearbeitest ein Innenraum-Foto mit einem Holzregal.\n\nBehalte unverändert:\nDas Holzregal exakt wie abgebildet – Struktur, Fächer, Maße, Holzfarbe und alle vorhandenen Objekte darin.\nPerspektive, Kamerawinkel und Bildausschnitt.\nParkett, Teppich und restliche Raumgeometrie.\n\nÄndere folgende Aspekte:\nSalbeifarbene Wand.\nRegal voller Bücher.\nViele Pflanzen auf dem Regal.\n\nPhotorealistisches Interieur-Foto.';
 };

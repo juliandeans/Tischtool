@@ -11,15 +11,28 @@ import type {
   CreateGenerationInput,
   GenerationRuntimeOptions,
   ProviderDebugRequest,
-  ProviderDebugRun
+  ProviderDebugRun,
+  ProviderPredictionDebug
 } from '$lib/types/generation';
 import { vertexCostEstimationService } from '$lib/server/vertex/cost-estimation';
-import { createDebugRunId, createVertexDebugLogger, sha256Hex } from '$lib/server/vertex/debug';
+import {
+  createDebugRunId,
+  createVertexDebugLogger,
+  previewRawResponse,
+  sha256Hex,
+  summarizeBase64
+} from '$lib/server/vertex/debug';
 import {
   VertexProviderError,
   type VertexGenerationResult,
   vertexImageService
 } from '$lib/server/vertex/image';
+import {
+  callGeminiImageEdit,
+  GEMINI_IMAGE_MODEL,
+  getGeminiGenerateContentUrl
+} from '$lib/server/vertex/gemini-image';
+import { vertexClient } from '$lib/server/vertex/client';
 
 type PromptBuildResult = ReturnType<typeof promptBuilder.build>;
 
@@ -32,6 +45,9 @@ type GenerationExecutionResult = {
   usageJson: Record<string, unknown>;
   providerDebugRun: ProviderDebugRun;
 };
+
+const getActiveImageModel = (runtimeOptions?: GenerationRuntimeOptions) =>
+  runtimeOptions?.imageModel === 'gemini-3-pro-image' ? 'gemini-3-pro-image' : 'imagen-3';
 
 export class GenerationService {
   previewGeneration(input: CreateGenerationInput, runtimeOptions?: GenerationRuntimeOptions) {
@@ -58,9 +74,11 @@ export class GenerationService {
     const debugLogger = createVertexDebugLogger(debugRunId, true);
     const normalizedPlacement = roomPlacementService.normalizePlacement(input.placement);
     const sourceImage = await imageService.getImage(input.sourceImageId);
+    const activeImageModel = getActiveImageModel(runtimeOptions);
     const runtimeOptionsWithDebug = {
       ...runtimeOptions,
-      debugRunId
+      debugRunId,
+      imageModel: activeImageModel
     } satisfies GenerationRuntimeOptions;
 
     if (sourceImage.projectId !== input.projectId) {
@@ -113,6 +131,12 @@ export class GenerationService {
       input.mode,
       input.variantsRequested
     );
+    const useGeminiImageModel =
+      activeImageModel === 'gemini-3-pro-image' && input.mode === 'environment_edit';
+    const requestedModel =
+      executionPlan.useVertex && useGeminiImageModel
+        ? GEMINI_IMAGE_MODEL
+        : executionPlan.model;
     const db = getDb();
 
     debugLogger.log('generation-entry', {
@@ -172,7 +196,7 @@ export class GenerationService {
         userId: sourceImage.userId,
         sourceImageId: sourceImage.id,
         provider: executionPlan.provider,
-        model: executionPlan.model,
+        model: requestedModel,
         mode: input.mode,
         promptText: prompt.promptText,
         systemPromptText: prompt.systemPromptText,
@@ -192,6 +216,7 @@ export class GenerationService {
           vertexFallbackReason: executionPlan.reason,
           providerPreference: runtimeOptionsWithDebug.providerPreference ?? 'real',
           providerDebugEnabled: runtimeOptionsWithDebug.providerDebugEnabled ?? false,
+          imageModel: activeImageModel,
           // Real Vertex is only enabled for environment_edit in this phase.
           realVertexEligible: executionPlan.useVertex
         },
@@ -227,16 +252,27 @@ export class GenerationService {
 
     try {
       const executionResult = executionPlan.useVertex
-        ? await this.executeWithVertexFallback({
-            generationId: generation.id,
-            input: {
-              ...input,
-              placement: normalizedPlacement
-            },
-            prompt,
-            sourceImage,
-            runtimeOptions: runtimeOptionsWithDebug
-          })
+        ? useGeminiImageModel
+          ? await this.executeWithGeminiFallback({
+              generationId: generation.id,
+              input: {
+                ...input,
+                placement: normalizedPlacement
+              },
+              prompt,
+              sourceImage,
+              runtimeOptions: runtimeOptionsWithDebug
+            })
+          : await this.executeWithVertexFallback({
+              generationId: generation.id,
+              input: {
+                ...input,
+                placement: normalizedPlacement
+              },
+              prompt,
+              sourceImage,
+              runtimeOptions: runtimeOptionsWithDebug
+            })
         : await this.executeFakeGeneration({
             generationId: generation.id,
             input: {
@@ -353,6 +389,125 @@ export class GenerationService {
       // Vertex failures fall back to the existing fake flow so the editor remains usable in dev.
       const fallbackReason =
         error instanceof VertexProviderError ? error.message : 'Unknown Vertex provider error.';
+
+      return this.executeFakeGeneration({
+        generationId: options.generationId,
+        input: options.input,
+        prompt: options.prompt,
+        fallbackReason,
+        vertexAttempted: true,
+        vertexError: error,
+        runtimeOptions: options.runtimeOptions
+      });
+    }
+  }
+
+  private async executeWithGeminiFallback(options: {
+    generationId: string;
+    input: CreateGenerationInput;
+    prompt: PromptBuildResult;
+    sourceImage: Awaited<ReturnType<typeof imageService.getImage>>;
+    runtimeOptions: GenerationRuntimeOptions;
+  }): Promise<GenerationExecutionResult> {
+    try {
+      const sourceImageBytes = await storage.readAsset(options.sourceImage.filePath);
+      const sourceImageBase64 = Buffer.from(sourceImageBytes).toString('base64');
+      const projectId = vertexClient.getConfiguration().projectId;
+      const accessToken = await vertexClient.getAccessToken();
+      const providerResponses = await Promise.all(
+        Array.from({ length: options.input.variantsRequested }, () =>
+          callGeminiImageEdit(
+            {
+              sourceImageBase64,
+              sourceImageMimeType: options.sourceImage.mimeType,
+              promptText: options.prompt.promptText
+            },
+            projectId,
+            accessToken
+          )
+        )
+      );
+      const images = providerResponses.map((response) => ({
+        bytes: Buffer.from(response.imageBase64, 'base64'),
+        mimeType: response.mimeType
+      }));
+      const outputByteSizes = images.map((image) => image.bytes.byteLength);
+      const predictions: ProviderPredictionDebug[] = providerResponses.map((response, index) => ({
+        index,
+        fieldsPresent: response.text ? ['inlineData', 'text'] : ['inlineData'],
+        selectedImageField: 'inlineData',
+        mimeType: response.mimeType,
+        base64: summarizeBase64(response.imageBase64),
+        decodedByteLength: images[index]?.bytes.byteLength ?? null,
+        sha256: images[index] ? sha256Hex(images[index].bytes) : null,
+        decodeSucceeded: true,
+        decodeError: null
+      }));
+      const providerDebugRun: ProviderDebugRun = {
+        runId: options.runtimeOptions.debugRunId ?? createDebugRunId(),
+        usedFlow: 'vertex',
+        model: GEMINI_IMAGE_MODEL,
+        requestType: 'generate',
+        requestEndpoint: 'generateContent',
+        endpointUrl: getGeminiGenerateContentUrl(projectId),
+        sourceImageIncluded: true,
+        maskIncluded: false,
+        targetRegionIncluded: false,
+        sampleCount: options.input.variantsRequested,
+        fakeFallbackUsed: false,
+        fallbackReason: null,
+        responseStatus: 200,
+        predictionsCount: images.length,
+        outputMimeTypes: images.map((image) => image.mimeType),
+        outputByteSizes,
+        totalOutputBytes: outputByteSizes.reduce((sum, size) => sum + size, 0),
+        responseMetadata: null,
+        responseRootKeys: ['candidates'],
+        rawResponsePreview: previewRawResponse(
+          JSON.stringify({
+            candidates: providerResponses.map((response) => ({
+              content: {
+                parts: [
+                  ...(response.text ? [{ text: response.text }] : []),
+                  {
+                    inlineData: {
+                      mimeType: response.mimeType,
+                      data: '<omitted-base64-image>'
+                    }
+                  }
+                ]
+              }
+            }))
+          })
+        ),
+        predictions,
+        artifacts: [],
+        persistedImages: [],
+        editStrategy: 'Gemini generateContent mit Quellbild und freiem Edit-Prompt.',
+        modelHint: null,
+        error: null
+      };
+      const providerResult: VertexGenerationResult = {
+        provider: 'vertex',
+        model: GEMINI_IMAGE_MODEL,
+        usage: {
+          fakeGeneration: false,
+          geminiTextResponses: providerResponses.map((response) => response.text ?? null)
+        },
+        providerDebug: providerDebugRun,
+        images
+      };
+
+      return await this.persistVertexResult({
+        generationId: options.generationId,
+        input: options.input,
+        prompt: options.prompt,
+        providerResult,
+        runtimeOptions: options.runtimeOptions
+      });
+    } catch (error) {
+      const fallbackReason =
+        error instanceof Error ? error.message : 'Unknown Gemini provider error.';
 
       return this.executeFakeGeneration({
         generationId: options.generationId,

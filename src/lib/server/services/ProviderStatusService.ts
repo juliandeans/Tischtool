@@ -1,7 +1,11 @@
 import type { Cookies } from '@sveltejs/kit';
 
 import { serverConfig } from '$lib/server/config';
-import { readProviderDebugEnabled, readProviderPreference } from '$lib/server/provider-settings';
+import {
+  readImageModel,
+  readProviderDebugEnabled,
+  readProviderPreference
+} from '$lib/server/provider-settings';
 import { vertexClient } from '$lib/server/vertex/client';
 import type { ProviderSettingsSnapshot, ProviderStatusSnapshot } from '$lib/types/settings';
 
@@ -35,10 +39,12 @@ export class ProviderStatusService {
     const configuration = vertexClient.getConfiguration();
     const providerPreference = readProviderPreference(cookies);
     const providerDebugEnabled = readProviderDebugEnabled(cookies);
+    const imageModel = readImageModel(cookies);
     const settings: ProviderSettingsSnapshot = {
       vertexProjectId: configuration.projectId,
       vertexLocation: configuration.location,
       vertexModel: configuration.model,
+      imageModel,
       providerPreference,
       providerDebugEnabled,
       credentialsMode: configuration.credentialsPath ? 'service-account-file' : 'adc'

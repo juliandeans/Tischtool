@@ -415,14 +415,10 @@ export const buildEnvironmentEditVertexPayload = (
       prompt: promptText,
       referenceImages: [
         {
-          referenceType: 'REFERENCE_TYPE_SUBJECT',
+          referenceType: 'REFERENCE_TYPE_RAW',
           referenceId: 1,
           referenceImage: {
             bytesBase64Encoded: sourceImageBase64
-          },
-          subjectImageConfig: {
-            subjectType: 'SUBJECT_TYPE_PRODUCT',
-            subjectDescription: 'furniture piece'
           }
         }
       ]

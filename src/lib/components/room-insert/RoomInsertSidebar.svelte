@@ -14,7 +14,7 @@
   export let furnitureImageId = '';
   export let stylePreset = 'original';
   export let lightPreset = 'original';
-  export let variantsRequested = '2';
+  export let variantsRequested = '1';
   export let instructions = '';
   export let projectOptions: PresetOption[] = [];
   export let roomImageOptions: PresetOption[] = [];

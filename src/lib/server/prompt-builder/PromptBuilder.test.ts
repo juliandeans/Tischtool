@@ -26,26 +26,8 @@ describe('promptBuilder', () => {
       }
     });
 
-    expect(result.promptText).toContain('Kontext:');
-    expect(result.promptText).toContain('Erhaltungsregeln:');
-    expect(result.promptText).toContain('Entscheidende zusätzliche Hinweise:');
-    expect(result.promptText).toContain(
-      '- Diese visuellen Änderungen sind das primäre Änderungsziel.'
-    );
-    expect(result.promptText).toContain('- gelbe Wand');
-    expect(result.promptText).toContain('- Hängepflanzen');
-    expect(result.promptText).toContain('- ruhiger');
-    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
-      result.promptText.indexOf('Änderungsbereich:')
-    );
-    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
-      result.promptText.indexOf('Stil:')
-    );
-    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
-      result.promptText.indexOf('Licht:')
-    );
-    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
-      result.promptText.indexOf('Ausgabeziel:')
+    expect(result.promptText).toBe(
+      'Ändere gelbe Wand, Hängepflanzen, ruhiger in Bild [1].\nBehalte das Möbelstück selbst, die Perspektive und den Bildausschnitt exakt bei.'
     );
     expect(result.promptDebug.instructionDebug).toEqual({
       rawInput: 'gelbe Wand, Hängepflanzen, ruhiger',
@@ -81,12 +63,8 @@ describe('promptBuilder', () => {
       'rote Wand',
       'Palme im Garten'
     ]);
-    expect(result.promptText).toContain('Entscheidende zusätzliche Hinweise:');
-    expect(result.promptText).toContain('- Fischteich');
-    expect(result.promptText).toContain('- rote Wand');
-    expect(result.promptText).toContain('- Palme im Garten');
-    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
-      result.promptText.indexOf('Änderungsbereich:')
+    expect(result.promptText).toBe(
+      'Ändere Fischteich, rote Wand, Palme im Garten in Bild [1].\nBehalte das Möbelstück selbst, die Perspektive und den Bildausschnitt exakt bei.'
     );
   });
 
@@ -149,8 +127,28 @@ describe('promptBuilder', () => {
     expect(result.promptDebug.instructionDebug.normalizedLines).toEqual(['rotes Haus']);
     expect(result.promptText).toContain('Entscheidende zusätzliche Hinweise:');
     expect(result.promptText).toContain('- rotes Haus');
-    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
-      result.promptText.indexOf('Änderungsbereich:')
+  });
+
+  it('uses the fallback prompt when no instruction hints are present', () => {
+    const result = promptBuilder.build({
+      projectId: 'project-5',
+      sourceImageId: 'image-5',
+      mode: 'environment_edit',
+      variantsRequested: 1,
+      stylePreset: 'original',
+      lightPreset: 'original',
+      instructions: '   ',
+      targetMaterial: null,
+      surfaceDescription: '',
+      preserveObject: true,
+      preservePerspective: true,
+      placement: null
+    });
+
+    expect(result.promptDebug.instructionDebug.rawInput).toBe('');
+    expect(result.promptDebug.instructionDebug.normalizedLines).toEqual([]);
+    expect(result.promptText).toBe(
+      'Verbessere die Raumatmosphäre in Bild [1].\nBehalte das Möbelstück selbst, die Perspektive und den Bildausschnitt exakt bei.'
     );
   });
 });

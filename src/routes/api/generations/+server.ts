@@ -2,7 +2,11 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 import type { PostGenerationRequest, PostGenerationResponse } from '$lib/types/api';
-import { readProviderDebugEnabled, readProviderPreference } from '$lib/server/provider-settings';
+import {
+  readImageModel,
+  readProviderDebugEnabled,
+  readProviderPreference
+} from '$lib/server/provider-settings';
 import { createDebugRunId } from '$lib/server/vertex/debug';
 import type { GenerationMode } from '$lib/types/generation';
 import { generationService } from '$lib/server/services/GenerationService';
@@ -50,6 +54,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       {
         providerPreference: readProviderPreference(cookies),
         providerDebugEnabled: readProviderDebugEnabled(cookies),
+        imageModel: readImageModel(cookies),
         debugRunId
       }
     );

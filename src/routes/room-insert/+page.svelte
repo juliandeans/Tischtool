@@ -28,7 +28,7 @@
     data.images.find((image) => image.id !== selectedRoomImageId)?.id ?? '';
   let stylePreset = 'original';
   let lightPreset = 'original';
-  let variantsRequested = '2';
+  let variantsRequested = '1';
   let instructions = '';
   let placement: ImagePlacement | null = null;
   let promptPreview: PromptDebugPreview | null = null;

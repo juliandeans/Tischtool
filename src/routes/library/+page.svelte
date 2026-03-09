@@ -66,27 +66,26 @@
   const deleteImage = async (imageId: string) => {
     uploadError = '';
     uploadSuccess = '';
-
-    if (!confirm('Bild wirklich aus der Bibliothek löschen?')) {
-      return;
-    }
-
     deletingImageId = imageId;
 
-    const response = await fetch(`/api/images/${imageId}`, {
-      method: 'DELETE'
-    });
+    try {
+      const response = await fetch(`/api/images/${imageId}`, {
+        method: 'DELETE'
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
 
-    deletingImageId = '';
+      if (!response.ok) {
+        uploadError = payload.error || 'Bild konnte nicht gelöscht werden.';
+        return;
+      }
 
-    if (!response.ok) {
-      const payload = (await response.json()) as { error?: string };
-      uploadError = payload.error || 'Bild konnte nicht gelöscht werden.';
-      return;
+      uploadSuccess = 'Bild wurde aus der Bibliothek gelöscht.';
+      await invalidateAll();
+    } catch {
+      uploadError = 'Bild konnte nicht gelöscht werden.';
+    } finally {
+      deletingImageId = '';
     }
-
-    uploadSuccess = 'Bild wurde aus der Bibliothek gelöscht.';
-    await invalidateAll();
   };
 </script>
 

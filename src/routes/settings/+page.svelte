@@ -2,6 +2,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import Input from '$lib/components/ui/Input.svelte';
+  import Select from '$lib/components/ui/Select.svelte';
   export let data;
   export let form;
 </script>
@@ -30,12 +31,14 @@
           value={data.providerSettings.vertexLocation || 'Nicht gesetzt'}
           readonly
         />
-        <Input
-          id="settings-vertex-model"
-          label="Vertex Model"
-          value={data.providerSettings.vertexModel || 'Nicht gesetzt'}
-          readonly
-        />
+        {#if data.providerSettings.imageModel === 'imagen-3'}
+          <Input
+            id="settings-vertex-model"
+            label="Vertex Model"
+            value={data.providerSettings.vertexModel || 'Nicht gesetzt'}
+            readonly
+          />
+        {/if}
       </div>
 
       <p class="note">{data.credentialsHint}</p>
@@ -99,6 +102,22 @@
             : 'Test / Fallback'}
         </strong>
       </p>
+
+      <div class="section-head">
+        <h2>Bildgenerierung</h2>
+        <p>Hier wählst du das aktive Bildmodell für neue Generierungen.</p>
+      </div>
+
+      <Select
+        id="settings-image-model"
+        name="imageModel"
+        label="Modell"
+        value={data.providerSettings.imageModel}
+        options={[
+          { value: 'imagen-3', label: 'Imagen 3' },
+          { value: 'gemini-3-pro-image', label: 'Gemini 3 Pro Image' }
+        ]}
+      />
 
       <label class="toggle">
         <input

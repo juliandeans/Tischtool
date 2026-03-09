@@ -14,7 +14,7 @@
   export let initialMode: 'environment_edit' | 'material_edit' = 'environment_edit';
   export let initialStyle = 'original';
   export let initialLight = 'original';
-  export let initialVariants = '2';
+  export let initialVariants = '1';
   export let initialInstructions = '';
   export let initialTargetMaterial = 'oak-light';
   export let initialSurfaceDescription = '';

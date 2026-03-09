@@ -3,10 +3,13 @@ import type { Actions, PageServerLoad } from './$types';
 
 import { providerStatusService } from '$lib/server/services/ProviderStatusService';
 import { writeProviderPreferences } from '$lib/server/provider-settings';
-import type { ProviderFlowPreference } from '$lib/types/settings';
+import type { ImageModel, ProviderFlowPreference } from '$lib/types/settings';
 
 const isProviderPreference = (value: string): value is ProviderFlowPreference =>
   value === 'real' || value === 'fake';
+
+const isImageModel = (value: string): value is ImageModel =>
+  value === 'imagen-3' || value === 'gemini-3-pro-image';
 
 export const load: PageServerLoad = async ({ cookies }) => {
   const snapshot = await providerStatusService.getSnapshot(cookies);
@@ -23,6 +26,7 @@ export const actions: Actions = {
     const formData = await request.formData();
     const providerPreference = String(formData.get('providerPreference') ?? '');
     const providerDebugEnabled = formData.get('providerDebugEnabled') === 'on';
+    const imageModel = String(formData.get('imageModel') ?? '');
 
     if (!isProviderPreference(providerPreference)) {
       return fail(400, {
@@ -30,9 +34,16 @@ export const actions: Actions = {
       });
     }
 
+    if (!isImageModel(imageModel)) {
+      return fail(400, {
+        error: 'Ungültiges Bildmodell.'
+      });
+    }
+
     writeProviderPreferences(cookies, {
       providerPreference,
-      providerDebugEnabled
+      providerDebugEnabled,
+      imageModel
     });
 
     return {

@@ -1,9 +1,11 @@
 export type ProviderFlowPreference = 'real' | 'fake';
+export type ImageModel = 'imagen-3' | 'gemini-3-pro-image';
 
 export type ProviderSettingsSnapshot = {
   vertexProjectId: string;
   vertexLocation: string;
   vertexModel: string;
+  imageModel: ImageModel;
   providerPreference: ProviderFlowPreference;
   providerDebugEnabled: boolean;
   credentialsMode: 'adc' | 'service-account-file';
