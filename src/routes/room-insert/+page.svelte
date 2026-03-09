@@ -420,6 +420,18 @@
             <h2>Stück auswählen</h2>
           </div>
 
+          <div class="room-insert__preview-card">
+            {#if furnitureImage}
+              <img
+                class="room-insert__preview-image"
+                src={furnitureImage.downloadUrl}
+                alt={furnitureImage.title}
+              />
+            {:else}
+              <div class="room-insert__preview-empty">Noch kein Objekt gewählt</div>
+            {/if}
+          </div>
+
           <div class="room-insert__selector-row">
             <Select
               bind:value={selectedFurnitureImageId}
@@ -463,18 +475,6 @@
               </div>
             </div>
           </div>
-
-          <div class="room-insert__preview-card">
-            {#if furnitureImage}
-              <img
-                class="room-insert__preview-image"
-                src={furnitureImage.downloadUrl}
-                alt={furnitureImage.title}
-              />
-            {:else}
-              <div class="room-insert__preview-empty">Noch kein Objekt gewählt</div>
-            {/if}
-          </div>
         </div>
       </Card>
 
@@ -484,6 +484,20 @@
             <div class="eyebrow">Raum</div>
             <h2>Raumfoto auswählen</h2>
           </div>
+
+          <RoomPlacementCanvas
+            roomImageUrl={roomImage?.downloadUrl ?? ''}
+            roomImageTitle={roomImage?.title ?? ''}
+            imageWidth={roomImage?.width ?? null}
+            imageHeight={roomImage?.height ?? null}
+            {placement}
+            on:change={(event) => {
+              placement = event.detail;
+            }}
+            on:reset={() => {
+              placement = null;
+            }}
+          />
 
           <div class="room-insert__selector-row">
             <Select
@@ -528,20 +542,6 @@
               </div>
             </div>
           </div>
-
-          <RoomPlacementCanvas
-            roomImageUrl={roomImage?.downloadUrl ?? ''}
-            roomImageTitle={roomImage?.title ?? ''}
-            imageWidth={roomImage?.width ?? null}
-            imageHeight={roomImage?.height ?? null}
-            {placement}
-            on:change={(event) => {
-              placement = event.detail;
-            }}
-            on:reset={() => {
-              placement = null;
-            }}
-          />
         </div>
       </Card>
     </div>

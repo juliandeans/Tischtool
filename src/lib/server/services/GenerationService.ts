@@ -39,6 +39,11 @@ type PromptBuildResult = ReturnType<typeof promptBuilder.build>;
 
 type PersistedImage = Awaited<ReturnType<typeof imageService.createGeneratedVariant>>;
 
+type SecondaryImageInput = {
+  buffer: Buffer;
+  mimeType: string;
+};
+
 type GenerationExecutionResult = {
   provider: 'vertex' | 'dev-fake';
   model: string;
@@ -81,6 +86,8 @@ export class GenerationService {
     const debugLogger = createVertexDebugLogger(debugRunId, true);
     const normalizedPlacement = roomPlacementService.normalizePlacement(input.placement);
     const sourceImage = await imageService.getImage(input.sourceImageId);
+    let secondaryImage: SecondaryImageInput | undefined;
+    let promptPlacement = normalizedPlacement;
     const activeImageModel = getActiveImageModel(runtimeOptions);
     const runtimeOptionsWithDebug = {
       ...runtimeOptions,
@@ -112,12 +119,27 @@ export class GenerationService {
       if (roomImage.projectId !== input.projectId) {
         throw new Error('Room image does not belong to the provided project.');
       }
+
+      const roomImageBuffer = Buffer.from(await storage.readAsset(roomImage.filePath));
+      console.log('[debug][room-placement] roomImage loaded', {
+        byteLength: roomImageBuffer?.length,
+        hasBuffer: !!roomImageBuffer
+      });
+      secondaryImage = {
+        buffer: roomImageBuffer,
+        mimeType: roomImage.mimeType
+      };
+      promptPlacement = {
+        ...normalizedPlacement,
+        roomImageWidth: roomImage.width,
+        roomImageHeight: roomImage.height
+      } as typeof normalizedPlacement;
     }
 
     const prompt = promptBuilder.build(
       {
         ...input,
-        placement: normalizedPlacement
+        placement: promptPlacement
       },
       runtimeOptionsWithDebug
     );
@@ -129,7 +151,7 @@ export class GenerationService {
     const requestSkeleton = vertexImageService.prepareRequest(
       {
         ...input,
-        placement: normalizedPlacement
+        placement: promptPlacement
       },
       prompt.promptText,
       runtimeOptionsWithDebug
@@ -145,6 +167,12 @@ export class GenerationService {
       executionPlan.useVertex && useGeminiImageModel && geminiModelId
         ? geminiModelId
         : executionPlan.model;
+    const plannedFlow =
+      executionPlan.useVertex && useGeminiImageModel
+        ? 'gemini'
+        : executionPlan.useVertex
+          ? 'vertex'
+          : 'dev-fake';
     const db = getDb();
 
     debugLogger.log('generation-entry', {
@@ -159,7 +187,7 @@ export class GenerationService {
       maskPresent: false,
       sampleCount: requestSkeleton.providerDebug.sampleCount,
       providerParameters: requestSkeleton.providerDebug.providerParameters,
-      plannedFlow: requestSkeleton.providerDebug.plannedFlow
+      plannedFlow
     });
 
     await debugLogger.writeJson('generation-entry', {
@@ -263,7 +291,10 @@ export class GenerationService {
     try {
       const executionResult = executionPlan.useVertex
         ? useGeminiImageModel
-          ? await this.executeWithGeminiFallback({
+          ? (console.log('[debug][room-placement] calling gemini', {
+              hasSecondaryImage: !!secondaryImage
+            }),
+            await this.executeWithGeminiFallback({
               generationId: generation.id,
               input: {
                 ...input,
@@ -271,8 +302,9 @@ export class GenerationService {
               },
               prompt,
               sourceImage,
+              secondaryImage,
               runtimeOptions: runtimeOptionsWithDebug
-            })
+            }))
           : await this.executeWithVertexFallback({
               generationId: generation.id,
               input: {
@@ -417,6 +449,7 @@ export class GenerationService {
     input: CreateGenerationInput;
     prompt: PromptBuildResult;
     sourceImage: Awaited<ReturnType<typeof imageService.getImage>>;
+    secondaryImage?: SecondaryImageInput;
     runtimeOptions: GenerationRuntimeOptions;
   }): Promise<GenerationExecutionResult> {
     try {
@@ -434,6 +467,8 @@ export class GenerationService {
             {
               sourceImageBase64: Buffer.from(sourceImageBytes).toString('base64'),
               sourceImageMimeType: options.sourceImage.mimeType,
+              secondaryImageBase64: options.secondaryImage?.buffer.toString('base64'),
+              secondaryImageMimeType: options.secondaryImage?.mimeType,
               promptText: options.prompt.promptText
             },
             projectId,

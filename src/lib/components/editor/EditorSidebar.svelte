@@ -201,8 +201,7 @@
         <Select
           bind:value={roomPreset}
           id="editor-room-context"
-          label="Raumkontext"
-          description="Optionaler Zielraum für die Bildanpassung."
+          label="Raum"
           options={roomContextOptions}
         />
 
@@ -235,13 +234,10 @@
 
       {#if mode === 'environment_edit'}
         <div class="editor-sidebar__rules">
-          <Card accent="yellow" class="editor-sidebar__rules-card" padded={false}>
+          <Card class="editor-sidebar__rules-card" padded={false}>
             <details bind:open={showProtectionRules} class="editor-sidebar__disclosure">
               <summary class="editor-sidebar__summary">
-                <span>
-                  <strong>Standardschutzregeln</strong>
-                  <small>Standardmäßig aktiv, bei Bedarf anpassbar.</small>
-                </span>
+                <span> Standardschutzregeln </span>
                 <span class="editor-sidebar__summary-indicator" aria-hidden="true"></span>
               </summary>
               <div class="editor-sidebar__rules-panel">

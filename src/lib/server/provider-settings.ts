@@ -24,7 +24,7 @@ export const readImageModel = (cookies: Cookies): ImageModel =>
   cookies.get(IMAGE_MODEL_COOKIE) === 'gemini-3-pro-image' ||
   cookies.get(IMAGE_MODEL_COOKIE) === 'gemini-3.1-flash-image-preview'
     ? (cookies.get(IMAGE_MODEL_COOKIE) as ImageModel)
-    : 'imagen-3';
+    : 'gemini-3-pro-image';
 
 export const writeProviderPreferences = (
   cookies: Cookies,

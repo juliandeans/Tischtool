@@ -23,6 +23,7 @@ import { getMaterialModeParameters } from '$lib/server/prompt-builder/modes/mate
 import { getRoomPlacementModeParameters } from '$lib/server/prompt-builder/modes/roomInsert';
 import {
   buildGeminiImageEditPayload,
+  GEMINI_FLASH_IMAGE_MODEL,
   GEMINI_IMAGE_MODEL,
   getGeminiGenerateContentUrl
 } from '$lib/server/vertex/gemini-image';
@@ -72,6 +73,11 @@ const trimLines = (value: string) =>
 
 const buildSection = (title: string, lines: string[]) =>
   lines.length > 0 ? `${title}\n${lines.join('\n')}` : '';
+
+type RoomPlacementPromptPlacement = NonNullable<CreateGenerationInput['placement']> & {
+  roomImageWidth?: number | null;
+  roomImageHeight?: number | null;
+};
 
 const getResolvedUserInput = (input: CreateGenerationInput) => input.userInput ?? input.instructions ?? '';
 
@@ -164,12 +170,6 @@ function buildChangeBlock(
   const roomPresetPrompt = ROOM_PRESET_PROMPTS[roomPreset];
 
   if (mode === 'room_placement') {
-    if (roomPreset === 'none' || !roomPresetPrompt) {
-      throw new Error("Für 'Stück platzieren' muss ein Raum-Preset gewählt werden.");
-    }
-
-    lines.push(roomPresetPrompt);
-
     if (stylePreset !== 'original') {
       lines.push(`Stil: ${STYLE_PRESET_LABELS[stylePreset]}`);
     }
@@ -242,6 +242,70 @@ function buildChangeBlock(
   return buildSection('Ändere folgende Aspekte:', lines);
 }
 
+const getRoomPlacementPercent = (value: number, size: number | null) => {
+  if (!size || size <= 0) {
+    return Math.max(0, Math.round(value));
+  }
+
+  return Math.max(0, Math.min(100, Math.round((value / size) * 100)));
+};
+
+const getRoomPlacementPercentages = (input: CreateGenerationInput) => {
+  if (input.mode !== 'room_placement' || !input.placement) {
+    return null;
+  }
+
+  const placement = input.placement as RoomPlacementPromptPlacement;
+  const roomImageWidth =
+    typeof placement.roomImageWidth === 'number' && placement.roomImageWidth > 0
+      ? placement.roomImageWidth
+      : null;
+  const roomImageHeight =
+    typeof placement.roomImageHeight === 'number' && placement.roomImageHeight > 0
+      ? placement.roomImageHeight
+      : null;
+
+  return {
+    x: getRoomPlacementPercent(placement.x, roomImageWidth),
+    y: getRoomPlacementPercent(placement.y, roomImageHeight),
+    width: getRoomPlacementPercent(placement.width, roomImageWidth)
+  };
+};
+
+const createRoomPlacementPromptText = (input: CreateGenerationInput): string => {
+  const userLines = trimLines(getResolvedUserInput(input));
+  const percentages = getRoomPlacementPercentages(input);
+  const blocks = [
+    [
+      'Du erhältst zwei Bilder:',
+      'Bild 1: Ein freigestelltes Möbelstück vor neutralem Hintergrund.',
+      'Bild 2: Ein Raumfoto.'
+    ].join('\n'),
+    ['Platziere das Möbelstück aus Bild 1 photorealistisch in den Raum', 'aus Bild 2.'].join(
+      '\n'
+    ),
+    [
+      `Zielposition im Raum: ca. ${percentages?.x ?? 0}% von links, ${percentages?.y ?? 0}% von oben,`,
+      `Breite ca. ${percentages?.width ?? 0}% der Bildbreite.`
+    ].join('\n'),
+    [
+      'Behalte unverändert:',
+      'Den Raum aus Bild 2 exakt – Wände, Boden, Decke, Licht, Perspektive,',
+      'alle vorhandenen Möbel und Dekorationen.'
+    ].join('\n'),
+    [
+      'Das Möbelstück soll natürlich wirken: realistische Schatten,',
+      'korrekte Perspektive, zur Szene passende Beleuchtung.'
+    ].join('\n'),
+    input.stylePreset !== 'original' ? `Stil: ${STYLE_PRESET_LABELS[input.stylePreset]}` : '',
+    input.lightPreset !== 'original' ? `Licht: ${LIGHT_PRESET_LABELS[input.lightPreset]}` : '',
+    userLines.length > 0 ? ['Zusätzliche Wünsche:', ...userLines].join('\n') : '',
+    buildFooter()
+  ].filter(Boolean);
+
+  return blocks.join('\n\n');
+};
+
 const getVisibleProtectionRules = (
   input: CreateGenerationInput,
   mode: GenerationMode
@@ -276,7 +340,7 @@ const getPresetEffects = (input: CreateGenerationInput): PromptPresetEffect[] =>
 
   const roomPreset = getResolvedRoomPreset(input);
 
-  if (roomPreset !== 'none') {
+  if (input.mode !== 'room_placement' && roomPreset !== 'none') {
     effects.push({
       label: 'Raumkontext',
       value: ROOM_PRESET_LABELS[roomPreset],
@@ -304,6 +368,10 @@ const getPresetEffects = (input: CreateGenerationInput): PromptPresetEffect[] =>
 };
 
 const createPromptText = (input: CreateGenerationInput): string => {
+  if (input.mode === 'room_placement') {
+    return createRoomPlacementPromptText(input);
+  }
+
   const roomPreset = getResolvedRoomPreset(input);
   const protectionRules = getResolvedProtectionRules(input);
   const userInput = getResolvedUserInput(input);
@@ -343,27 +411,53 @@ export class PromptBuilder {
     const protectionRules = getVisibleProtectionRules(normalizedInput, normalizedInput.mode);
     const modeParameters = PREVIEW_MODE_PARAMETERS[normalizedInput.mode](normalizedInput);
     const requestPreview = vertexImageService.prepareRequest(normalizedInput, promptText, runtimeOptions);
+    const geminiModelId =
+      runtimeOptions?.imageModel === 'gemini-3.1-flash-image-preview'
+        ? GEMINI_FLASH_IMAGE_MODEL
+        : runtimeOptions?.imageModel === 'gemini-3-pro-image'
+          ? GEMINI_IMAGE_MODEL
+          : null;
     const requestPreviewWithModel =
-      runtimeOptions?.imageModel === 'gemini-3-pro-image' &&
-      normalizedInput.mode === 'environment_edit'
+      geminiModelId &&
+      (normalizedInput.mode === 'environment_edit' || normalizedInput.mode === 'room_placement')
         ? {
             ...requestPreview,
-            model: GEMINI_IMAGE_MODEL,
+            model: geminiModelId,
             payload: buildGeminiImageEditPayload({
               sourceImageBase64: '<omitted-base64-image>',
               sourceImageMimeType: 'image/png',
+              secondaryImageBase64:
+                normalizedInput.mode === 'room_placement' && normalizedInput.placement
+                  ? '<omitted-base64-image>'
+                  : undefined,
+              secondaryImageMimeType:
+                normalizedInput.mode === 'room_placement' && normalizedInput.placement
+                  ? 'image/png'
+                  : undefined,
               promptText
             }),
             providerDebug: {
               ...requestPreview.providerDebug,
-              model: GEMINI_IMAGE_MODEL,
+              model: geminiModelId,
               requestType: 'generate' as const,
               requestEndpoint: 'generateContent' as const,
-              endpointUrl: getGeminiGenerateContentUrl(vertexClient.getConfiguration().projectId),
+              endpointUrl: getGeminiGenerateContentUrl(
+                vertexClient.getConfiguration().projectId,
+                geminiModelId
+              ),
               maskIncluded: false,
+              targetRegionIncluded: false,
               requestBody: buildGeminiImageEditPayload({
                 sourceImageBase64: '<omitted-base64-image>',
                 sourceImageMimeType: 'image/png',
+                secondaryImageBase64:
+                  normalizedInput.mode === 'room_placement' && normalizedInput.placement
+                    ? '<omitted-base64-image>'
+                    : undefined,
+                secondaryImageMimeType:
+                  normalizedInput.mode === 'room_placement' && normalizedInput.placement
+                    ? 'image/png'
+                    : undefined,
                 promptText
               }),
               providerParameters: {
