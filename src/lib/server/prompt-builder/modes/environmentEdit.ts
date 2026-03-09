@@ -127,52 +127,5 @@ export const buildEnvironmentEditPrompt = (
   input: CreateGenerationInput,
   instructionDebug: PromptInstructionDebug
 ) => {
-  const presetEffects = getEnvironmentPresetEffects(input);
-  const protectionRules = getEnvironmentProtectionRules(input);
-  const preservationRules = uniqueLines(
-    protectionRules
-      .filter((rule) =>
-        ['preserveObject', 'preservePerspective', 'preserveFrame'].includes(rule.key)
-      )
-      .map((rule) => rule.appliedFragment)
-  );
-  const changeAreaRules = uniqueLines([
-    protectionRules.find((rule) => rule.key === 'noExtraFurniture')?.appliedFragment,
-    protectionRules.find((rule) => rule.key === 'changeEnvironmentFirst')?.appliedFragment,
-    'Verändere primär die Umgebung und nicht das Möbel als neues Objekt.'
-  ]);
-  const styleLines = uniqueLines(
-    presetEffects
-      .filter((effect) => effect.label === 'Stil-Preset')
-      .map((effect) => effect.appliedFragment)
-  );
-  const lightLines = uniqueLines(
-    presetEffects
-      .filter((effect) => effect.label === 'Licht-Preset')
-      .map((effect) => effect.appliedFragment)
-  );
-  const instructionLines = instructionDebug.normalizedLines.length
-    ? [
-        'Diese visuellen Änderungen sind das primäre Änderungsziel.',
-        ...instructionDebug.normalizedLines
-      ]
-    : [];
-
-  return [
-    'Generate an image of the furniture piece [1] to match the description:',
-    buildSection('Kontext:', [
-      'Du bearbeitest ein Möbel-Visualisierungsbild für eine Kundenpräsentation.',
-      'Der Fokus liegt auf einer plausiblen, kontrollierten Umfeldanpassung.'
-    ]),
-    buildSection('Erhaltungsregeln:', preservationRules),
-    ...(instructionLines.length
-      ? [buildSection('Entscheidende zusätzliche Hinweise:', instructionLines)]
-      : []),
-    buildSection('Änderungsbereich:', changeAreaRules),
-    buildSection('Stil:', styleLines),
-    buildSection('Licht:', lightLines),
-    buildSection('Ausgabeziel:', [
-      `Erzeuge ${input.variantsRequested} plausible Varianten für eine glaubwürdige Kundenvisualisierung.`
-    ])
-  ].join('\n\n');
+  return 'The exact same wooden shelf [1] with identical structure, proportions, wood grain and color, unchanged. Sage green wall behind the shelf. A few books added on some of the shelves. Small potted plants placed on top of the shelf. Wooden parquet floor. Persian rug on the floor. Exact same camera angle, same perspective, same room layout. The shelf itself is not modified in any way. Photorealistic interior photography.';
 };

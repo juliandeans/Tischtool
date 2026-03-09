@@ -61,11 +61,6 @@
       <p>{meta.subtitle}</p>
     </div>
   </div>
-  <div class="topbar__status">
-    <span class="topbar__chip topbar__chip--blue">SvelteKit</span>
-    <span class="topbar__chip topbar__chip--yellow">TypeScript</span>
-    <span class="topbar__chip topbar__chip--red">MVP</span>
-  </div>
 </header>
 
 <style>

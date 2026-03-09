@@ -39,7 +39,9 @@
         class={`sidebar__link sidebar__link--${item.accent}`}
         href={item.href}
       >
-        <span class="sidebar__dot" aria-hidden="true"></span>
+        <span class="sidebar__marker" aria-hidden="true">
+          <span class="sidebar__dot"></span>
+        </span>
         <span>{item.label}</span>
       </a>
     {/each}
@@ -52,7 +54,7 @@
     background: rgba(255, 255, 255, 0.82);
     backdrop-filter: blur(10px);
     border: 1px solid var(--color-border);
-    border-radius: 20px;
+    border-radius: 2px;
     display: grid;
     gap: var(--space-4);
     grid-template-rows: auto 1fr;
@@ -99,21 +101,24 @@
 
   .sidebar__link {
     align-items: center;
-    border: 1px solid transparent;
-    border-radius: 14px;
+    border: none;
     display: flex;
     font-weight: 600;
-    gap: 12px;
-    min-height: 46px;
-    padding: 0 14px;
+    gap: 14px;
+    min-height: 54px;
+    padding: 0 18px;
+    position: relative;
     transition:
       background-color 120ms ease,
       border-color 120ms ease,
       transform 120ms ease;
   }
 
-  .sidebar__link:hover {
-    transform: translateX(2px);
+  .sidebar__link:hover .sidebar__dot,
+  .sidebar__link.active .sidebar__dot {
+    width: 7px;
+    height: 32px;
+    border-radius: 2px;
   }
 
   .sidebar__link:focus-visible {
@@ -124,13 +129,30 @@
   .sidebar__link.active {
     background: var(--color-surface);
     border-color: var(--color-border);
-    box-shadow: var(--color-shadow-inset);
+    box-shadow: none;
   }
 
   .sidebar__dot {
+    width: 8px;
+    height: 8px;
     border-radius: 999px;
-    height: 10px;
-    width: 10px;
+    transition:
+      width 140ms ease,
+      height 140ms ease,
+      border-radius 140ms ease;
+  }
+
+  .sidebar__link:hover {
+    transform: none;
+  }
+
+  .sidebar__marker {
+    width: 18px;
+    height: 32px;
+    flex: 0 0 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .sidebar__link--blue .sidebar__dot {
