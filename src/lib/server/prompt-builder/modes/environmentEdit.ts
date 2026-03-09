@@ -159,6 +159,7 @@ export const buildEnvironmentEditPrompt = (
     : [];
 
   return [
+    'Generate an image of the furniture piece [1] to match the description:',
     buildSection('Kontext:', [
       'Du bearbeitest ein Möbel-Visualisierungsbild für eine Kundenpräsentation.',
       'Der Fokus liegt auf einer plausiblen, kontrollierten Umfeldanpassung.'

@@ -1,35 +1,44 @@
 :root {
-  --color-bg: #f7f7f4;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f1eee8;
+  --color-bg: #f3f1ea;
+  --color-surface: #fffdf8;
+  --color-surface-muted: #ece7dc;
   --color-text: #111111;
-  --color-text-muted: #6c6a66;
-  --color-border: #d9d5cd;
+  --color-text-muted: #5f5b54;
+  --color-border: #cfc7b8;
+
   --color-blue: #0057b8;
   --color-red: #e33a2c;
   --color-yellow: #f2c500;
-  --color-shadow-inset: inset 0 0 0 2px rgba(0, 0, 0, 0.06);
-  --radius-button: 10px;
-  --radius-input: 10px;
-  --radius-card: 12px;
-  --radius-modal: 16px;
+  --color-black: #111111;
+  --color-white: #ffffff;
+
+  --color-shadow-inset: none;
+  --color-shadow-inset-active: none;
+
+  --radius-button: 2px;
+  --radius-input: 2px;
+  --radius-card: 4px;
+  --radius-modal: 6px;
+
   --space-1: 8px;
   --space-2: 12px;
   --space-3: 16px;
   --space-4: 24px;
   --space-5: 32px;
   --space-6: 48px;
+
   --shell-width: 1280px;
   --sidebar-width: 248px;
+
   font-family:
-    Inter,
-    Geist,
+    "Poppins",
+    "Futura PT",
+    "Avenir Next",
+    "Century Gothic",
     ui-sans-serif,
     system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
     sans-serif;
+
   color: var(--color-text);
   background: var(--color-bg);
 }
@@ -46,7 +55,9 @@ body {
 
 body {
   background:
-    linear-gradient(180deg, rgba(242, 197, 0, 0.08) 0, rgba(242, 197, 0, 0) 220px), var(--color-bg);
+    linear-gradient(90deg, rgba(0, 87, 184, 0.08) 0 14px, transparent 14px 100%),
+    linear-gradient(180deg, rgba(242, 197, 0, 0.10) 0 180px, transparent 180px 100%),
+    var(--color-bg);
 }
 
 body,
@@ -77,19 +88,24 @@ img {
 .page-header {
   display: grid;
   gap: var(--space-1);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 .page-header h1 {
   margin: 0;
-  font-size: clamp(1.75rem, 2vw, 2.4rem);
-  line-height: 1.1;
+  font-size: clamp(2.2rem, 3.5vw, 4.25rem);
+  line-height: 0.95;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  max-width: 10ch;
 }
 
 .page-header p {
   margin: 0;
   color: var(--color-text-muted);
-  max-width: 70ch;
+  max-width: 42rem;
+  font-size: 1.05rem;
+  line-height: 1.35;
 }
 
 .split-layout {
@@ -120,11 +136,22 @@ img {
 }
 
 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   color: var(--color-text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 28px;
+  height: 6px;
+  background: var(--color-red);
+  display: inline-block;
 }
 
 .section-header {

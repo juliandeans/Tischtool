@@ -62,7 +62,8 @@
   }
 
   .button:hover:not(:disabled):not([aria-disabled='true']) {
-    transform: translateY(-1px);
+    transform: translateY(0px);
+    box-shadow: var(--color-shadow-inset-active);
   }
 
   .button:focus-visible {

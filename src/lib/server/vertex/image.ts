@@ -28,7 +28,6 @@ const clampSampleCount = (variantsRequested: number) =>
 
 const ENVIRONMENT_EDIT_MODE = 'EDIT_MODE_BGSWAP';
 const ENVIRONMENT_MASK_MODE = 'MASK_MODE_BACKGROUND';
-const ENVIRONMENT_EDIT_BASE_STEPS = 75;
 const BORDER_SAMPLE_SIZE = 16;
 const BACKGROUND_DISTANCE_THRESHOLD = 54;
 
@@ -416,32 +415,21 @@ export const buildEnvironmentEditVertexPayload = (
       prompt: promptText,
       referenceImages: [
         {
-          referenceType: 'REFERENCE_TYPE_RAW',
+          referenceType: 'REFERENCE_TYPE_SUBJECT',
           referenceId: 1,
           referenceImage: {
             bytesBase64Encoded: sourceImageBase64
-          }
-        },
-        {
-          referenceType: 'REFERENCE_TYPE_MASK',
-          referenceId: 2,
-          maskImageConfig: {
-            maskMode: ENVIRONMENT_MASK_MODE,
-            dilation: 0
+          },
+          subjectImageConfig: {
+            subjectType: 'SUBJECT_TYPE_PRODUCT',
+            subjectDescription: 'furniture piece'
           }
         }
       ]
     }
   ],
   parameters: {
-    sampleCount: clampSampleCount(input.variantsRequested),
-    editMode: ENVIRONMENT_EDIT_MODE,
-    editConfig: {
-      baseSteps: ENVIRONMENT_EDIT_BASE_STEPS
-    },
-    outputOptions: {
-      mimeType: 'image/png'
-    }
+    sampleCount: clampSampleCount(input.variantsRequested)
   }
 });
 

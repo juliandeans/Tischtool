@@ -9,7 +9,7 @@ import {
 } from '$lib/server/vertex/image';
 
 describe('vertex image helpers', () => {
-  it('builds an environment_edit payload with source image, background mask and edit config', () => {
+  it('builds an environment_edit payload with subject image config and sample count only', () => {
     const payload = buildEnvironmentEditVertexPayload(
       {
         projectId: 'project-1',
@@ -35,37 +35,26 @@ describe('vertex image helpers', () => {
           prompt: 'Kontext:\n- Testprompt',
           referenceImages: [
             {
-              referenceType: 'REFERENCE_TYPE_RAW',
+              referenceType: 'REFERENCE_TYPE_SUBJECT',
               referenceId: 1,
               referenceImage: {
                 bytesBase64Encoded: 'ZmFrZS1iYXNlNjQ='
-              }
-            },
-            {
-              referenceType: 'REFERENCE_TYPE_MASK',
-              referenceId: 2,
-              maskImageConfig: {
-                maskMode: 'MASK_MODE_BACKGROUND',
-                dilation: 0
+              },
+              subjectImageConfig: {
+                subjectType: 'SUBJECT_TYPE_PRODUCT',
+                subjectDescription: 'furniture piece'
               }
             }
           ]
         }
       ],
       parameters: {
-        sampleCount: 3,
-        editMode: 'EDIT_MODE_BGSWAP',
-        editConfig: {
-          baseSteps: 75
-        },
-        outputOptions: {
-          mimeType: 'image/png'
-        }
+        sampleCount: 3
       }
     });
   });
 
-  it('models environment_edit as an edit request with source image and automatic background mask', () => {
+  it('models environment_edit as a subject-based request with sample count only', () => {
     const request = vertexImageService.prepareRequest(
       {
         projectId: 'project-1',
@@ -92,8 +81,8 @@ describe('vertex image helpers', () => {
     expect(request.providerDebug.maskIncluded).toBe(true);
     expect(request.providerDebug.targetRegionIncluded).toBe(false);
     expect(request.providerDebug.sampleCount).toBe(2);
-    expect(request.payload.parameters).toMatchObject({
-      editMode: 'EDIT_MODE_BGSWAP'
+    expect(request.payload.parameters).toEqual({
+      sampleCount: 2
     });
   });
 

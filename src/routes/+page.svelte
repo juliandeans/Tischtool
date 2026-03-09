@@ -12,7 +12,7 @@
       </p>
       <div class="cluster">
         <Button href="/projects" variant="primary">Zu Projekten</Button>
-        <Button href="/library">Zur Bildbibliothek</Button>
+        <Button href="/library">Zur Bibliothek</Button>
       </div>
     </div>
   </Card>

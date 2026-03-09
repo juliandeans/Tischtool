@@ -201,7 +201,7 @@
   }
 
   .upload-picker__trigger:hover {
-    transform: translateY(-1px);
+    transform: translateY(0px);
   }
 
   .upload-picker__trigger:focus-within,

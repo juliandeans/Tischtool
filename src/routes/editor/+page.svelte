@@ -8,5 +8,5 @@
   description="Sobald Bilder in Projekten oder in der Bibliothek vorhanden sind, kannst du sie direkt im Editor öffnen."
   accent="blue"
 >
-  <Button slot="actions" href="/library" variant="primary">Zur Bildbibliothek</Button>
+  <Button slot="actions" href="/library" variant="primary">Zur Bibliothek</Button>
 </EmptyState>

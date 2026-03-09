@@ -56,7 +56,7 @@
   }
 
   .icon-button:hover:enabled {
-    transform: translateY(-1px);
+    transform: translateY(0px);
   }
 
   .icon-button--primary {
