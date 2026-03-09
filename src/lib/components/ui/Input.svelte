@@ -29,6 +29,7 @@
       aria-invalid={error ? 'true' : 'false'}
       class:error={Boolean(error)}
       {id}
+      on:change
       {placeholder}
       {rows}
     ></textarea>
@@ -40,6 +41,7 @@
       aria-invalid={error ? 'true' : 'false'}
       class:error={Boolean(error)}
       {id}
+      on:change
       {placeholder}
       {type}
     />

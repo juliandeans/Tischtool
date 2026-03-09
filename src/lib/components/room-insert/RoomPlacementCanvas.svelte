@@ -170,6 +170,7 @@
             <div class="eyebrow">Zielregion</div>
             <p>Klick setzt eine Standardgröße. Ziehen definiert eine freie Zielbox.</p>
           </div>
+          <slot name="actions"></slot>
           <div class="cluster">
             {#if placement}
               <Button type="button" on:click={() => dispatch('reset')}>Auswahl zurücksetzen</Button>

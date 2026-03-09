@@ -190,6 +190,7 @@
           time: image.createdAt,
           status: image.type,
           thumbnailUrl: image.thumbnailUrl,
+          previewUrl: `/api/images/${image.id}/download`,
           downloadUrl: image.downloadUrl,
           editUrl: image.editUrl,
           width: image.width,

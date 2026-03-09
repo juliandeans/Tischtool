@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tischtool">
+  <rect width="512" height="512" rx="72" fill="#f7f3e8" />
+  <rect x="96" y="112" width="320" height="58" fill="#0057b8" />
+  <rect x="96" y="227" width="320" height="58" fill="#e33a2c" />
+  <rect x="96" y="342" width="320" height="58" fill="#f2c500" />
+</svg>

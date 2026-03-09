@@ -10,7 +10,7 @@
 
   export let data;
 
-  let projectId = data.selectedProjectId ?? data.projects[0]?.id ?? '';
+  let projectId = data.selectedProjectId ?? '';
   let imageType = 'upload';
   let fileInput: HTMLInputElement | null = null;
   let isUploading = false;
@@ -149,6 +149,7 @@
       time: image.createdAt,
       status: image.type,
       thumbnailUrl: image.thumbnailUrl,
+      previewUrl: `/api/images/${image.id}/download`,
       downloadUrl: image.downloadUrl,
       editUrl: image.editUrl
     }))}

@@ -86,24 +86,24 @@
       <div class="canvas__header">
         <div class="canvas__title-block">
           {#if isEditingTitle}
-            <form class="canvas__title-form" on:submit|preventDefault={submitRename}>
+            <form class="inline-rename-form" on:submit|preventDefault={submitRename}>
               <input
-                class="canvas__title-input"
+                class="inline-rename-input"
                 type="text"
                 bind:value={draftTitle}
                 maxlength="120"
                 aria-label="Bildnamen bearbeiten"
                 disabled={isSavingTitle}
               />
-              <div class="canvas__title-actions">
+              <div class="inline-rename-actions">
                 <button
-                  class="canvas__title-button canvas__title-button--save"
+                  class="inline-rename-button inline-rename-button--save"
                   disabled={isSavingTitle}
                 >
                   {isSavingTitle ? 'Speichert...' : 'Speichern'}
                 </button>
                 <button
-                  class="canvas__title-button"
+                  class="inline-rename-button"
                   type="button"
                   disabled={isSavingTitle}
                   on:click={cancelRename}
@@ -128,7 +128,7 @@
             </div>
           {/if}
           {#if renameError}
-            <p class="canvas__rename-error">{renameError}</p>
+            <p class="inline-rename-error">{renameError}</p>
           {/if}
         </div>
       </div>
@@ -232,43 +232,4 @@
     opacity: 1;
   }
 
-  .canvas__title-form {
-    display: grid;
-    gap: 8px;
-  }
-
-  .canvas__title-input {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--color-radius);
-    box-shadow: var(--color-shadow-inset);
-    font: inherit;
-    padding: 10px 12px;
-  }
-
-  .canvas__title-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .canvas__title-button {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--color-radius);
-    box-shadow: var(--color-shadow-inset);
-    font: inherit;
-    padding: 8px 12px;
-  }
-
-  .canvas__title-button--save {
-    border-color: var(--color-blue);
-    color: var(--color-blue);
-  }
-
-  .canvas__rename-error {
-    color: var(--color-red);
-    font-size: 0.85rem;
-    margin: 0;
-  }
 </style>

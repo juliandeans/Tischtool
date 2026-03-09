@@ -185,6 +185,53 @@ img {
   width: 1px;
 }
 
+.inline-rename-form {
+  display: grid;
+  gap: 8px;
+}
+
+.inline-rename-input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  box-shadow: var(--color-shadow-inset);
+  font: inherit;
+  min-height: 44px;
+  outline: none;
+  padding: 0 14px;
+}
+
+.inline-rename-input:focus {
+  border-color: var(--color-blue);
+}
+
+.inline-rename-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inline-rename-button {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  box-shadow: var(--color-shadow-inset);
+  font: inherit;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.inline-rename-button--save {
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+}
+
+.inline-rename-error {
+  color: var(--color-red);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
 @media (max-width: 960px) {
   .split-layout {
     grid-template-columns: 1fr;

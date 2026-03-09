@@ -10,6 +10,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
+  import Select from '$lib/components/ui/Select.svelte';
   import type { PostGenerationPreviewResponse, PostGenerationResponse } from '$lib/types/api';
   import type { PromptDebugPreview, RoomPreset } from '$lib/types/generation';
   import type { ImagePlacement } from '$lib/types/image';
@@ -22,6 +23,7 @@
   let uploadSuccess = '';
   let isGenerating = false;
   let isUploadingRoomPhoto = false;
+  let isUploadingFurniturePhoto = false;
   let selectedProjectId = data.selectedProjectId ?? '';
   let selectedRoomImageId =
     data.selectedRoomImageId && data.images.some((image) => image.id === data.selectedRoomImageId)
@@ -57,11 +59,48 @@
   } | null = null;
   let promptPreviewTimer: ReturnType<typeof setTimeout> | null = null;
   let promptPreviewRequestId = 0;
+  let roomFileInput: HTMLInputElement | null = null;
+  let furnitureFileInput: HTMLInputElement | null = null;
+  let selectedRoomFile: File | null = null;
+  let selectedFurnitureFile: File | null = null;
+  let selectedRoomFileName = '';
+  let selectedFurnitureFileName = '';
+  let lastDataSelectedProjectId = data.selectedProjectId ?? '';
+  let lastDataSelectedRoomImageId = data.selectedRoomImageId ?? '';
+  let lastDataSelectedFurnitureImageId = data.selectedFurnitureImageId ?? '';
 
   $: projectOptions = [
     { value: '', label: 'Projekt wählen' },
     ...data.projects.map((project) => ({ value: project.id, label: project.name }))
   ];
+  $: {
+    const nextProjectId = data.selectedProjectId ?? '';
+
+    if (nextProjectId !== lastDataSelectedProjectId) {
+      lastDataSelectedProjectId = nextProjectId;
+      selectedProjectId = nextProjectId;
+    }
+  }
+  $: {
+    const nextRoomImageId = data.selectedRoomImageId ?? '';
+
+    if (nextRoomImageId !== lastDataSelectedRoomImageId) {
+      lastDataSelectedRoomImageId = nextRoomImageId;
+      if (nextRoomImageId) {
+        selectedRoomImageId = nextRoomImageId;
+      }
+    }
+  }
+  $: {
+    const nextFurnitureImageId = data.selectedFurnitureImageId ?? '';
+
+    if (nextFurnitureImageId !== lastDataSelectedFurnitureImageId) {
+      lastDataSelectedFurnitureImageId = nextFurnitureImageId;
+      if (nextFurnitureImageId) {
+        selectedFurnitureImageId = nextFurnitureImageId;
+      }
+    }
+  }
   $: imageOptions = data.images.map((image) => ({
     value: image.id,
     label: `${image.title} · ${image.type}`
@@ -235,8 +274,61 @@
     }
 
     selectedRoomImageId = payload.image.id;
+    selectedRoomFileName = '';
+    selectedRoomFile = null;
+    if (roomFileInput) {
+      roomFileInput.value = '';
+    }
     uploadSuccess = 'Raumfoto wurde gespeichert und steht sofort für die Platzierung bereit.';
-    await invalidateAll();
+    await goto(
+      `/room-insert?projectId=${selectedProjectId}&roomImageId=${payload.image.id}${
+        selectedFurnitureImageId ? `&furnitureImageId=${selectedFurnitureImageId}` : ''
+      }`
+    );
+  };
+
+  const handleFurnitureUpload = async (event: CustomEvent<{ file: File }>) => {
+    uploadError = '';
+    uploadSuccess = '';
+
+    if (!selectedProjectId) {
+      uploadError = 'Bitte zuerst ein Projekt wählen.';
+      return;
+    }
+
+    isUploadingFurniturePhoto = true;
+
+    const formData = new FormData();
+    formData.set('projectId', selectedProjectId);
+    formData.set('type', 'upload');
+    formData.set('file', event.detail.file);
+
+    const response = await fetch('/api/uploads', {
+      method: 'POST',
+      body: formData
+    });
+
+    isUploadingFurniturePhoto = false;
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      uploadError = payload.error || 'Objektbild konnte nicht hochgeladen werden.';
+      return;
+    }
+
+    selectedFurnitureImageId = payload.image.id;
+    selectedFurnitureFileName = '';
+    selectedFurnitureFile = null;
+    if (furnitureFileInput) {
+      furnitureFileInput.value = '';
+    }
+    uploadSuccess = 'Objektbild wurde gespeichert und steht sofort für die Platzierung bereit.';
+    await goto(
+      `/room-insert?projectId=${selectedProjectId}&furnitureImageId=${payload.image.id}${
+        selectedRoomImageId ? `&roomImageId=${selectedRoomImageId}` : ''
+      }`
+    );
   };
 
   const handleGenerate = async (
@@ -319,19 +411,143 @@
     <Button slot="actions" href="/projects" type="button" variant="primary">Projekt anlegen</Button>
   </EmptyState>
 {:else}
-  {#if data.images.length === 0}
+  <div class="split-layout room-insert__workspace">
+    <div class="stack room-insert__main-column">
+      <Card accent="blue">
+        <div class="stack">
+          <div>
+            <div class="eyebrow">Objekt</div>
+            <h2>Stück auswählen</h2>
+          </div>
+
+          <div class="room-insert__selector-row">
+            <Select
+              bind:value={selectedFurnitureImageId}
+              id="room-furniture"
+              label="Bild aus der Bibliothek"
+              options={furnitureImageOptions}
+            />
+            <div class="room-insert__upload-column">
+              <span class="room-insert__upload-label">Neues Objekt hochladen</span>
+              <div class="room-insert__actions-row">
+                <input
+                  bind:this={furnitureFileInput}
+                  accept="image/*"
+                  class="visually-hidden"
+                  id="furniture-file"
+                  type="file"
+                  on:change={(event) => {
+                    const target = event.currentTarget as HTMLInputElement;
+                    selectedFurnitureFile = target.files?.[0] ?? null;
+                    selectedFurnitureFileName = selectedFurnitureFile?.name ?? '';
+                  }}
+                />
+                <label class="room-insert__file-trigger" for="furniture-file">
+                  {selectedFurnitureFileName || 'Objekt wählen'}
+                </label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  loading={isUploadingFurniturePhoto}
+                  disabled={!selectedProjectId || !selectedFurnitureFile}
+                  on:click={() => {
+                    if (selectedFurnitureFile) {
+                      void handleFurnitureUpload({
+                        detail: { file: selectedFurnitureFile }
+                      } as CustomEvent<{ file: File }>);
+                    }
+                  }}
+                >
+                  Upload
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div class="room-insert__preview-card">
+            {#if furnitureImage}
+              <img
+                class="room-insert__preview-image"
+                src={furnitureImage.downloadUrl}
+                alt={furnitureImage.title}
+              />
+            {:else}
+              <div class="room-insert__preview-empty">Noch kein Objekt gewählt</div>
+            {/if}
+          </div>
+        </div>
+      </Card>
+
+      <Card accent="red">
+        <div class="stack">
+          <div>
+            <div class="eyebrow">Raum</div>
+            <h2>Raumfoto auswählen</h2>
+          </div>
+
+          <div class="room-insert__selector-row">
+            <Select
+              bind:value={selectedRoomImageId}
+              id="room-image"
+              label="Bild aus der Bibliothek"
+              options={roomImageOptions}
+            />
+            <div class="room-insert__upload-column">
+              <span class="room-insert__upload-label">Neues Raumfoto hochladen</span>
+              <div class="room-insert__actions-row">
+                <input
+                  bind:this={roomFileInput}
+                  accept="image/*"
+                  class="visually-hidden"
+                  id="room-file"
+                  type="file"
+                  on:change={(event) => {
+                    const target = event.currentTarget as HTMLInputElement;
+                    selectedRoomFile = target.files?.[0] ?? null;
+                    selectedRoomFileName = selectedRoomFile?.name ?? '';
+                  }}
+                />
+                <label class="room-insert__file-trigger" for="room-file">
+                  {selectedRoomFileName || 'Raumfoto wählen'}
+                </label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  loading={isUploadingRoomPhoto}
+                  disabled={!selectedProjectId || !selectedRoomFile}
+                  on:click={() => {
+                    if (selectedRoomFile) {
+                      void handleRoomUpload({
+                        detail: { file: selectedRoomFile }
+                      } as CustomEvent<{ file: File }>);
+                    }
+                  }}
+                >
+                  Upload
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <RoomPlacementCanvas
+            roomImageUrl={roomImage?.downloadUrl ?? ''}
+            roomImageTitle={roomImage?.title ?? ''}
+            imageWidth={roomImage?.width ?? null}
+            imageHeight={roomImage?.height ?? null}
+            {placement}
+            on:change={(event) => {
+              placement = event.detail;
+            }}
+            on:reset={() => {
+              placement = null;
+            }}
+          />
+        </div>
+      </Card>
+    </div>
+
     <div class="stack">
-      <EmptyState
-        title="Noch keine Bilder im Projekt"
-        description="Für Stück platzieren brauchst du mindestens ein Raumfoto und ein Möbelbild im gewählten Projekt."
-        accent="yellow"
-      >
-        <Button slot="actions" href={`/library?projectId=${selectedProjectId}`} variant="primary">
-          Bilder hochladen
-        </Button>
-      </EmptyState>
       <RoomInsertSidebar
-        bind:projectId={selectedProjectId}
         bind:roomImageId={selectedRoomImageId}
         bind:furnitureImageId={selectedFurnitureImageId}
         bind:stylePreset
@@ -339,25 +555,14 @@
         bind:roomPreset
         bind:variantsRequested
         bind:instructions
-        error={generationError}
-        {uploadError}
-        success={generationSuccess}
-        {uploadSuccess}
-        uploadingRoomPhoto={isUploadingRoomPhoto}
-        furnitureImageLabel={furnitureImage?.title ?? ''}
-        {furnitureImageOptions}
-        {placement}
-        {projectOptions}
-        roomImageLabel={roomImage?.title ?? ''}
-        {roomImageOptions}
+        error={generationError || uploadError}
+        success={generationSuccess || uploadSuccess}
         submitting={isGenerating}
         on:generate={handleGenerate}
         on:modechange={handleModeChange}
-        on:projectchange={handleProjectChange}
         on:statechange={(event) => {
           roomInsertState = event.detail;
         }}
-        on:uploadroom={handleRoomUpload}
       />
       {#if data.debugEnabled}
         <PromptDebugPanel
@@ -369,63 +574,7 @@
         />
       {/if}
     </div>
-  {:else}
-    <div class="split-layout room-insert__workspace">
-      <RoomPlacementCanvas
-        roomImageUrl={roomImage?.downloadUrl ?? ''}
-        roomImageTitle={roomImage?.title ?? ''}
-        imageWidth={roomImage?.width ?? null}
-        imageHeight={roomImage?.height ?? null}
-        {placement}
-        on:change={(event) => {
-          placement = event.detail;
-        }}
-        on:reset={() => {
-          placement = null;
-        }}
-      />
-      <div class="stack">
-        <RoomInsertSidebar
-          bind:projectId={selectedProjectId}
-          bind:roomImageId={selectedRoomImageId}
-          bind:furnitureImageId={selectedFurnitureImageId}
-          bind:stylePreset
-          bind:lightPreset
-          bind:roomPreset
-          bind:variantsRequested
-          bind:instructions
-          error={generationError}
-          {uploadError}
-          success={generationSuccess}
-          {uploadSuccess}
-          uploadingRoomPhoto={isUploadingRoomPhoto}
-          furnitureImageLabel={furnitureImage?.title ?? ''}
-          {furnitureImageOptions}
-          {placement}
-          {projectOptions}
-          roomImageLabel={roomImage?.title ?? ''}
-          {roomImageOptions}
-          submitting={isGenerating}
-          on:generate={handleGenerate}
-          on:modechange={handleModeChange}
-          on:projectchange={handleProjectChange}
-          on:statechange={(event) => {
-            roomInsertState = event.detail;
-          }}
-          on:uploadroom={handleRoomUpload}
-        />
-        {#if data.debugEnabled}
-          <PromptDebugPanel
-            title="Prompt-Vorschau"
-            preview={promptPreview}
-            loading={promptPreviewLoading}
-            error={promptPreviewError}
-            emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle Stück-platzieren-Prompt-Vorschau."
-          />
-        {/if}
-      </div>
-    </div>
-  {/if}
+  </div>
 
   <div class="stack room-insert__extras">
     {#if data.debugEnabled && latestPromptDebug}
@@ -478,6 +627,80 @@
     padding-right: 1px;
   }
 
+  .room-insert__main-column {
+    min-width: 0;
+  }
+
+  .room-insert__preview-card {
+    align-items: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    display: grid;
+    min-height: 280px;
+    overflow: hidden;
+    place-items: center;
+  }
+
+  .room-insert__preview-image {
+    display: block;
+    max-height: 480px;
+    max-width: 100%;
+    object-fit: contain;
+    width: 100%;
+  }
+
+  .room-insert__preview-empty {
+    color: var(--color-text-muted);
+    padding: var(--space-4);
+  }
+
+  .room-insert__selector-row {
+    align-items: end;
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .room-insert__upload-column {
+    display: grid;
+    gap: 8px;
+  }
+
+  .room-insert__upload-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .room-insert__actions-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .room-insert__file-trigger {
+    align-items: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-button);
+    box-shadow: var(--color-shadow-inset);
+    cursor: pointer;
+    display: inline-flex;
+    min-height: 44px;
+    padding: 0 18px;
+  }
+
+  .visually-hidden {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+
   .room-insert__extras {
     margin-top: var(--space-4);
   }
@@ -494,6 +717,10 @@
     .room-insert__workspace {
       grid-template-columns: 1fr;
       padding-right: 0;
+    }
+
+    .room-insert__selector-row {
+      grid-template-columns: 1fr;
     }
   }
 </style>

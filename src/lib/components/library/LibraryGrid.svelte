@@ -3,6 +3,7 @@
 
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import ImageCard from '$lib/components/library/ImageCard.svelte';
+  import Preview from '$lib/components/ui/Preview.svelte';
   import Spinner from '$lib/components/ui/Spinner.svelte';
 
   const dispatch = createEventDispatcher<{
@@ -17,6 +18,7 @@
     time: string;
     status: string;
     thumbnailUrl: string;
+    previewUrl?: string;
     downloadUrl: string;
     editUrl: string;
     width?: number | null;
@@ -26,6 +28,10 @@
   export let items: ImageItem[] = [];
   export let loading = false;
   export let deletingId = '';
+
+  let previewOpen = false;
+  let previewSrc = '';
+  let previewAlt = '';
 </script>
 
 {#if loading}
@@ -45,10 +51,17 @@
         {...item}
         deleting={deletingId === item.id}
         on:delete={() => dispatch('delete', { id: item.id })}
+        on:preview={(event) => {
+          previewSrc = event.detail.src;
+          previewAlt = event.detail.title;
+          previewOpen = true;
+        }}
       />
     {/each}
   </div>
 {/if}
+
+<Preview bind:open={previewOpen} src={previewSrc} alt={previewAlt} />
 
 <style>
   .grid {

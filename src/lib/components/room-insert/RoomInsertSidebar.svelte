@@ -7,10 +7,7 @@
   import Input from '$lib/components/ui/Input.svelte';
   import Select from '$lib/components/ui/Select.svelte';
   import { DEFAULT_PROTECTION_RULES, type RoomPreset } from '$lib/types/generation';
-  import type { ImagePlacement } from '$lib/types/image';
-  import type { PresetOption } from '$lib/types/preset';
 
-  export let projectId = '';
   export let roomImageId = '';
   export let furnitureImageId = '';
   export let stylePreset = 'original';
@@ -18,23 +15,12 @@
   export let roomPreset: RoomPreset = 'modern_living';
   export let variantsRequested = '1';
   export let instructions = '';
-  export let projectOptions: PresetOption[] = [];
-  export let roomImageOptions: PresetOption[] = [];
-  export let furnitureImageOptions: PresetOption[] = [];
-  export let placement: ImagePlacement | null = null;
-  export let roomImageLabel = '';
-  export let furnitureImageLabel = '';
   export let submitting = false;
-  export let uploadingRoomPhoto = false;
   export let error = '';
-  export let uploadError = '';
   export let success = '';
-  export let uploadSuccess = '';
 
   const dispatch = createEventDispatcher<{
     modechange: 'environment_edit' | 'material_edit' | 'room_placement';
-    projectchange: string;
-    uploadroom: { file: File };
     generate: {
       roomImageId: string;
       furnitureImageId: string;
@@ -78,6 +64,7 @@
   ];
 
   const roomContextOptions = [
+    { value: 'none', label: 'Aktuell belassen' },
     { value: 'modern_living', label: 'Modernes Wohnzimmer' },
     { value: 'scandinavian', label: 'Skandinavisch' },
     { value: 'landhaus', label: 'Landhaus' },
@@ -85,9 +72,6 @@
     { value: 'office', label: 'Büro / Arbeitszimmer' },
     { value: 'childrens_room', label: 'Kinderzimmer' }
   ];
-
-  let roomFile: File | null = null;
-
   const buildPayload = () => ({
     roomImageId,
     furnitureImageId,
@@ -101,13 +85,6 @@
     preservePerspective: true,
     protectionRules: DEFAULT_PROTECTION_RULES
   });
-
-  const submitUpload = () => {
-    if (roomFile) {
-      dispatch('uploadroom', { file: roomFile });
-      roomFile = null;
-    }
-  };
 
   const submitGenerate = () => {
     dispatch('generate', buildPayload());
@@ -133,56 +110,11 @@
   <Card>
     <form class="stack" on:submit|preventDefault={submitGenerate}>
       <Select
-        bind:value={projectId}
-        id="room-project"
-        label="Projekt"
-        options={projectOptions}
-        on:change={() => dispatch('projectchange', projectId)}
-      />
-
-      <Select
         bind:value={roomPreset}
         id="room-context"
         label="Raumkontext"
         description="Pflichtfeld für Stück platzieren."
         options={roomContextOptions}
-      />
-
-      <Select
-        bind:value={roomImageId}
-        id="room-image"
-        label="Raumfoto"
-        description="Wähle ein vorhandenes Bild oder lade unten ein neues Raumfoto hoch."
-        options={roomImageOptions}
-      />
-
-      <div class="upload-field">
-        <span class="field-label">Raumfoto hochladen</span>
-        <input
-          accept="image/*"
-          type="file"
-          on:change={(event) => {
-            const target = event.currentTarget as HTMLInputElement;
-            roomFile = target.files?.[0] ?? null;
-          }}
-        />
-        <Button
-          type="button"
-          variant="secondary"
-          loading={uploadingRoomPhoto}
-          disabled={!projectId || !roomFile}
-          on:click={submitUpload}
-        >
-          Raumfoto hochladen
-        </Button>
-      </div>
-
-      <Select
-        bind:value={furnitureImageId}
-        id="room-furniture"
-        label="Möbelbild"
-        description="Wähle ein vorhandenes Möbelbild aus dem Projekt."
-        options={furnitureImageOptions}
       />
 
       <Select bind:value={stylePreset} id="room-style" label="Stil" options={styleOptions} />
@@ -207,29 +139,6 @@
         multiline
         placeholder="z. B. Sofa näher ans Fenster, ruhigerer Hintergrund, weniger Dekoration"
       />
-
-      <Card accent="yellow">
-        <div class="stack">
-          <div class="eyebrow">Auswahlstatus</div>
-          <p class="muted">Raumfoto: {roomImageLabel || 'noch nicht gewählt'}</p>
-          <p class="muted">Möbelbild: {furnitureImageLabel || 'noch nicht gewählt'}</p>
-          <p class="muted">
-            Zielregion:
-            {#if placement}
-              {placement.x}, {placement.y} · {placement.width} × {placement.height}
-            {:else}
-              noch nicht gesetzt
-            {/if}
-          </p>
-        </div>
-      </Card>
-
-      {#if uploadError}
-        <p class="sidebar-message sidebar-message--error">{uploadError}</p>
-      {/if}
-      {#if uploadSuccess}
-        <p class="sidebar-message sidebar-message--success">{uploadSuccess}</p>
-      {/if}
       {#if error}
         <p class="sidebar-message sidebar-message--error">{error}</p>
       {/if}
@@ -241,7 +150,7 @@
         type="submit"
         variant="primary"
         loading={submitting}
-        disabled={!projectId || !roomImageId || !furnitureImageId || !placement}
+        disabled={!roomImageId || !furnitureImageId}
       >
         Raumvariante generieren
       </Button>
@@ -260,8 +169,7 @@
   }
 
   .stack,
-  form,
-  .upload-field {
+  form {
     display: grid;
     gap: 8px;
     min-width: 0;
@@ -276,24 +184,6 @@
     display: grid;
     min-height: 72px;
   }
-
-  .field-label {
-    font-size: 0.95rem;
-    font-weight: 600;
-  }
-
-  input[type='file'] {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-input);
-    box-shadow: var(--color-shadow-inset);
-    max-width: 100%;
-    min-height: 44px;
-    min-width: 0;
-    padding: 10px 14px;
-    width: 100%;
-  }
-
   .sidebar-message {
     margin: 0;
   }

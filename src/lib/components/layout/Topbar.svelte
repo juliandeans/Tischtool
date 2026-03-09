@@ -1,6 +1,9 @@
 <script lang="ts">
   import { env } from '$env/dynamic/public';
+  import { goto } from '$app/navigation';
   import { page } from '$app/stores';
+
+  import Select from '$lib/components/ui/Select.svelte';
 
   const labels: Record<string, { title: string; subtitle: string }> = {
     '/': {
@@ -22,8 +25,9 @@
         'Öffne ein bestehendes Bild aus der Bibliothek oder springe direkt in die letzte Variante.'
     },
     '/room-insert': {
-      title: 'Raumfoto einsetzen',
-      subtitle: 'Eigenständiger MVP-Flow für Raumfoto, Zielregion und Varianten.'
+      title: 'Implementieren',
+      subtitle:
+        'Objekt in eine Umgebung setzen: Erst oben das Objekt auswählen oder hochladen. Danach unten eine gewünschte Umgebung auswählen. In das Umgebungsfoto klicken, um eine Position auszuwählen.'
     },
     '/costs': {
       title: 'Kosten',
@@ -51,6 +55,17 @@
           subtitle: `Einzelbildansicht für ${pathname.split('/').pop() ?? 'bild'}.`
         }
       : (labels[pathname] ?? labels['/']);
+  $: roomInsertProjectOptions =
+    pathname === '/room-insert' && Array.isArray($page.data.projects)
+      ? [
+          { value: '', label: 'Projekt wählen' },
+          ...$page.data.projects.map((project) => ({ value: project.id, label: project.name }))
+        ]
+      : [];
+  $: roomInsertSelectedProjectId =
+    pathname === '/room-insert' && typeof $page.data.selectedProjectId === 'string'
+      ? $page.data.selectedProjectId
+      : '';
 </script>
 
 <header class="topbar">
@@ -61,6 +76,21 @@
       <p>{meta.subtitle}</p>
     </div>
   </div>
+
+  {#if pathname === '/room-insert' && roomInsertProjectOptions.length > 1}
+    <div class="topbar__project-filter">
+      <Select
+        id="topbar-room-project"
+        label=""
+        value={roomInsertSelectedProjectId}
+        options={roomInsertProjectOptions}
+        on:change={(event) => {
+          const target = event.currentTarget as HTMLSelectElement;
+          void goto(target.value ? `/room-insert?projectId=${target.value}` : '/room-insert');
+        }}
+      />
+    </div>
+  {/if}
 </header>
 
 <style>
@@ -90,6 +120,11 @@
     color: var(--color-text-muted);
     margin-top: 4px;
     max-width: 65ch;
+  }
+
+  .topbar__project-filter {
+    min-width: min(320px, 100%);
+    width: 320px;
   }
 
   .topbar__status {
@@ -125,6 +160,10 @@
   @media (max-width: 720px) {
     .topbar {
       flex-direction: column;
+    }
+
+    .topbar__project-filter {
+      width: 100%;
     }
 
     .topbar__status {

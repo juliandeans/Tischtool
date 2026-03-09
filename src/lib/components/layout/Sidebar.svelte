@@ -5,7 +5,7 @@
     { href: '/projects', label: 'Projekte', accent: 'blue' },
     { href: '/library', label: 'Bibliothek', accent: 'yellow' },
     { href: '/editor', label: 'Editor', accent: 'blue' },
-    { href: '/room-insert', label: 'Raumfoto', accent: 'red' },
+    { href: '/room-insert', label: 'Implementieren', accent: 'red' },
     { href: '/costs', label: 'Kosten', accent: 'yellow' },
     { href: '/presets', label: 'Presets', accent: 'blue' },
     { href: '/settings', label: 'Einstellungen', accent: 'red' }

@@ -1,10 +1,32 @@
 <script lang="ts">
+  import { invalidateAll } from '$app/navigation';
+
   import Card from '$lib/components/ui/Card.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import LibraryGrid from '$lib/components/library/LibraryGrid.svelte';
   import { toShortDate } from '$lib/utils/dates';
 
   export let data;
+
+  let deletingImageId = '';
+
+  const deleteImage = async (imageId: string) => {
+    deletingImageId = imageId;
+
+    try {
+      const response = await fetch(`/api/images/${imageId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      await invalidateAll();
+    } finally {
+      deletingImageId = '';
+    }
+  };
 </script>
 
 <div class="page-header">
@@ -42,9 +64,12 @@
       time: image.createdAt,
       status: image.type,
       thumbnailUrl: image.thumbnailUrl,
+      previewUrl: `/api/images/${image.id}/download`,
       downloadUrl: image.downloadUrl,
       editUrl: image.editUrl
     }))}
+    deletingId={deletingImageId}
     loading={false}
+    on:delete={(event) => deleteImage(event.detail.id)}
   />
 </div>

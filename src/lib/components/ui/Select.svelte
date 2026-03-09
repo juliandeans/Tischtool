@@ -14,7 +14,7 @@
     <span class="field__description">{description}</span>
   {/if}
   <div class="select-wrap">
-    <select {...$$restProps} bind:value {id}>
+    <select {...$$restProps} bind:value {id} on:change>
       {#each options as option}
         <option value={option.value}>{option.label}</option>
       {/each}
