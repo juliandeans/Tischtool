@@ -133,12 +133,12 @@ export const buildMaterialEditPrompt = (
       'Der Fokus liegt ausschließlich auf Material und Oberflächenwirkung des Möbels.'
     ]),
     buildSection('Erhaltungsregeln:', preservationRules),
-    buildSection('Änderungsbereich:', changeAreaRules),
-    buildSection('Stil:', styleLines),
-    buildSection('Licht:', lightLines),
     ...(instructionDebug.normalizedLines.length
       ? [buildSection('Entscheidende zusätzliche Hinweise:', instructionDebug.normalizedLines)]
       : []),
+    buildSection('Änderungsbereich:', changeAreaRules),
+    buildSection('Stil:', styleLines),
+    buildSection('Licht:', lightLines),
     buildSection('Ausgabeziel:', [
       `Erzeuge ${input.variantsRequested} plausible Materialvarianten für eine glaubwürdige Kundenvisualisierung.`
     ])

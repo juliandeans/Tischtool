@@ -29,9 +29,21 @@ describe('promptBuilder', () => {
     expect(result.promptText).toContain('Kontext:');
     expect(result.promptText).toContain('Erhaltungsregeln:');
     expect(result.promptText).toContain('Entscheidende zusätzliche Hinweise:');
+    expect(result.promptText).toContain(
+      '- Diese visuellen Änderungen sind das primäre Änderungsziel.'
+    );
     expect(result.promptText).toContain('- gelbe Wand');
     expect(result.promptText).toContain('- Hängepflanzen');
     expect(result.promptText).toContain('- ruhiger');
+    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
+      result.promptText.indexOf('Änderungsbereich:')
+    );
+    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
+      result.promptText.indexOf('Stil:')
+    );
+    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
+      result.promptText.indexOf('Licht:')
+    );
     expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
       result.promptText.indexOf('Ausgabeziel:')
     );
@@ -73,6 +85,9 @@ describe('promptBuilder', () => {
     expect(result.promptText).toContain('- Fischteich');
     expect(result.promptText).toContain('- rote Wand');
     expect(result.promptText).toContain('- Palme im Garten');
+    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
+      result.promptText.indexOf('Änderungsbereich:')
+    );
   });
 
   it('parses mixed separators identically', () => {
@@ -109,6 +124,9 @@ describe('promptBuilder', () => {
     expect(result.promptText).toContain('- rotes Haus');
     expect(result.promptText).toContain('- Fischteich');
     expect(result.promptText).toContain('- Palme im Garten');
+    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
+      result.promptText.indexOf('Änderungsbereich:')
+    );
   });
 
   it('keeps a single hint as a single normalized line', () => {
@@ -131,5 +149,8 @@ describe('promptBuilder', () => {
     expect(result.promptDebug.instructionDebug.normalizedLines).toEqual(['rotes Haus']);
     expect(result.promptText).toContain('Entscheidende zusätzliche Hinweise:');
     expect(result.promptText).toContain('- rotes Haus');
+    expect(result.promptText.indexOf('Entscheidende zusätzliche Hinweise:')).toBeLessThan(
+      result.promptText.indexOf('Änderungsbereich:')
+    );
   });
 });

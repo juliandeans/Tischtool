@@ -151,6 +151,12 @@ export const buildEnvironmentEditPrompt = (
       .filter((effect) => effect.label === 'Licht-Preset')
       .map((effect) => effect.appliedFragment)
   );
+  const instructionLines = instructionDebug.normalizedLines.length
+    ? [
+        'Diese visuellen Änderungen sind das primäre Änderungsziel.',
+        ...instructionDebug.normalizedLines
+      ]
+    : [];
 
   return [
     buildSection('Kontext:', [
@@ -158,12 +164,12 @@ export const buildEnvironmentEditPrompt = (
       'Der Fokus liegt auf einer plausiblen, kontrollierten Umfeldanpassung.'
     ]),
     buildSection('Erhaltungsregeln:', preservationRules),
+    ...(instructionLines.length
+      ? [buildSection('Entscheidende zusätzliche Hinweise:', instructionLines)]
+      : []),
     buildSection('Änderungsbereich:', changeAreaRules),
     buildSection('Stil:', styleLines),
     buildSection('Licht:', lightLines),
-    ...(instructionDebug.normalizedLines.length
-      ? [buildSection('Entscheidende zusätzliche Hinweise:', instructionDebug.normalizedLines)]
-      : []),
     buildSection('Ausgabeziel:', [
       `Erzeuge ${input.variantsRequested} plausible Varianten für eine glaubwürdige Kundenvisualisierung.`
     ])

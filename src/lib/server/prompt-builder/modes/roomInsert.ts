@@ -169,12 +169,12 @@ export const buildRoomInsertPrompt = (
       ...placementLines
     ]),
     buildSection('Erhaltungsregeln:', preservationRules),
-    buildSection('Änderungsbereich:', changeAreaRules),
-    buildSection('Stil:', styleLines),
-    buildSection('Licht:', lightLines),
     ...(instructionDebug.normalizedLines.length
       ? [buildSection('Entscheidende zusätzliche Hinweise:', instructionDebug.normalizedLines)]
       : []),
+    buildSection('Änderungsbereich:', changeAreaRules),
+    buildSection('Stil:', styleLines),
+    buildSection('Licht:', lightLines),
     buildSection('Ausgabeziel:', [
       `Erzeuge ${input.variantsRequested} plausible Varianten für eine glaubwürdige Raumvorschau.`
     ])
