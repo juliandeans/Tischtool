@@ -13,15 +13,13 @@ export const ROOM_PRESET_LABELS: Record<RoomPreset, string> = {
 export const ROOM_PRESET_PROMPTS: Record<RoomPreset, string | null> = {
   none: null,
   modern_living:
-    'Heller, moderner Wohnraum. Hellgraue Wände, helles Parkettholz, diffuses Tageslicht, wenig aber hochwertige Dekoration.',
+    'Moderner Wohnraum. Hellgraue Wände, helles Parkettholz, wenig aber hochwertige Dekoration.',
   scandinavian:
-    'Skandinavischer Wohnstil. Weiß-cremefarbene Wände, helles Birkenholz, warmes natürliches Licht, Pflanzen und Leinentextilien.',
+    'Skandinavischer Wohnstil. Weiß-cremefarbene Wände, helles Birkenholz, Pflanzen und Leinentextilien.',
   landhaus:
-    'Gemütliches Landhaus-Interieur. Gebrochen-weiße Wände, dunkles Eichenholz, warmes Abendlicht, rustikale Dekoration.',
-  loft:
-    'Urbaner Loft-Stil. Betonwand oder Sichtziegel, dunkler Betonboden, gezielte Akzentbeleuchtung, minimale Dekoration.',
-  office:
-    'Ruhiges Arbeitszimmer. Neutrale helle Wände, Parkettboden, funktionales gleichmäßiges Licht, ordentlich und aufgeräumt.',
+    'Landhaus-Interieur. Gebrochen-weiße Wände, dunkles Eichenholz, rustikale Dekoration.',
+  loft: 'Urbaner Loft-Stil. Betonwand oder Sichtziegel, dunkler Betonboden, minimale Dekoration.',
+  office: 'Arbeitszimmer. Neutrale helle Wände, Parkettboden, ordentlich und aufgeräumt.',
   childrens_room:
-    'Freundliches Kinderzimmer. Pastellfarbene Wände, heller Boden, weiches gleichmäßiges Licht, kindgerechte bunte Dekoration.'
+    'Kinderzimmer. Pastellfarbene Wände, heller Boden, kindgerechte bunte Dekoration.'
 };

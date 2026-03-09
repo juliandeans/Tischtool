@@ -309,12 +309,13 @@
   }
 
   .submode-button {
+    align-items: center;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 2px;
     box-shadow: var(--color-shadow-inset);
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     justify-content: flex-start;
     min-height: 44px;
@@ -473,6 +474,7 @@
     .submode-button {
       align-items: flex-start;
       flex-direction: column;
+      flex-wrap: wrap;
     }
   }
 </style>

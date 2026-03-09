@@ -138,8 +138,7 @@ export class GenerationService {
       input.mode,
       input.variantsRequested
     );
-    const useGeminiImageModel =
-      activeImageModel !== 'imagen-3' && input.mode === 'environment_edit';
+    const useGeminiImageModel = activeImageModel !== 'imagen-3';
     const geminiModelId =
       activeImageModel === 'imagen-3' ? null : getGeminiModelId(activeImageModel);
     const requestedModel =

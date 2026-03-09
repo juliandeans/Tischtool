@@ -197,8 +197,8 @@ function buildChangeBlock(
     if (materialEditSubMode === 'form') {
       return [
         buildSection('Ändere die Form und Proportionen des Möbelstücks:', userLines),
-        'Passe die Perspektive und den Bildausschnitt nur so weit an,',
-        'wie es für eine realistische Darstellung der neuen Form nötig ist.'
+        'Passe Perspektive und Bildausschnitt nur so weit an, wie es für',
+        'eine realistische Darstellung der neuen Form nötig ist.'
       ].join('\n');
     }
 
@@ -213,19 +213,31 @@ function buildChangeBlock(
     return buildSection('Ändere folgende Aspekte am Möbelstück:', userLines);
   }
 
-  if (roomPresetPrompt) {
-    lines.push(roomPresetPrompt);
+  const userLines = trimLines(userInput);
+  const hasRoomContext = Boolean(roomPresetPrompt);
+  const hasStylePreset = stylePreset !== 'original';
+  const hasLightPreset = lightPreset !== 'original';
+  const hasUserInput = userLines.length > 0;
+  const shouldPrioritizeUserInput = hasRoomContext && hasUserInput;
+
+  if (hasRoomContext) {
+    lines.push(roomPresetPrompt as string);
   }
 
-  if (stylePreset !== 'original') {
+  if (hasStylePreset) {
     lines.push(`Stil: ${STYLE_PRESET_LABELS[stylePreset]}`);
   }
 
-  if (lightPreset !== 'original') {
+  if (hasLightPreset) {
     lines.push(`Licht: ${LIGHT_PRESET_LABELS[lightPreset]}`);
   }
 
-  lines.push(...trimLines(userInput));
+  if (shouldPrioritizeUserInput) {
+    lines.push('Individuelle Anpassungen (haben Vorrang vor dem Raumkontext):');
+    lines.push(...userLines);
+  } else if (hasUserInput) {
+    lines.push(...userLines);
+  }
 
   return buildSection('Ändere folgende Aspekte:', lines);
 }

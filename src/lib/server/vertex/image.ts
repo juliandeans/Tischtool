@@ -441,6 +441,15 @@ export class VertexImageService {
   ): VertexExecutionPlan {
     const configuration = vertexClient.getConfiguration();
     const providerPreference = runtimeOptions?.providerPreference ?? 'real';
+    const selectedImageModel = runtimeOptions?.imageModel ?? 'imagen-3';
+    const useGeminiImageModel =
+      selectedImageModel === 'gemini-3-pro-image' ||
+      selectedImageModel === 'gemini-3.1-flash-image-preview';
+    const selectedVertexModel =
+      selectedImageModel === 'gemini-3-pro-image' ||
+      selectedImageModel === 'gemini-3.1-flash-image-preview'
+        ? selectedImageModel
+        : configuration.model;
 
     if (providerPreference === 'fake') {
       return {
@@ -452,7 +461,7 @@ export class VertexImageService {
       };
     }
 
-    if (mode !== 'environment_edit') {
+    if (mode !== 'environment_edit' && !useGeminiImageModel) {
       return {
         useVertex: false,
         reason: 'Only environment_edit uses the real Vertex flow in this step.',
@@ -468,7 +477,7 @@ export class VertexImageService {
         reason: 'Vertex environment variables are incomplete.',
         configured: false,
         provider: 'dev-fake',
-        model: configuration.model || 'environment_edit-fake'
+        model: selectedVertexModel || 'environment_edit-fake'
       };
     }
 
@@ -487,7 +496,7 @@ export class VertexImageService {
       reason: null,
       configured: true,
       provider: 'vertex',
-      model: configuration.model
+      model: selectedVertexModel
     };
   }
 

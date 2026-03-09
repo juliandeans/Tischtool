@@ -33,6 +33,8 @@ const pickSharpMetadata = (metadata: sharp.Metadata) => ({
   orientation: metadata.orientation ?? null
 });
 
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
 export class ImageService {
   async listProjectImages(projectId: string) {
     if (!isDatabaseConfigured()) {
@@ -423,14 +425,28 @@ export class ImageService {
           ? { label: 'ROOM', suffix: 'room', subtitle: 'Room Fake Flow' }
           : { label: 'ENV', suffix: 'env', subtitle: 'Environment Fake Flow' };
     const variantLabel = `${modeConfig.label} ${input.variantIndex + 1}`;
-    const overlay = Buffer.from(`
-      <svg width="1200" height="900" xmlns="http://www.w3.org/2000/svg">
-        <rect x="910" y="36" width="240" height="72" rx="18" fill="rgba(255,255,255,0.78)" />
-        <rect x="930" y="54" width="18" height="18" rx="9" fill="${badgeHue}" />
-        <text x="964" y="70" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#111111">${variantLabel}</text>
-        <text x="964" y="95" font-family="Inter, Arial, sans-serif" font-size="18" fill="#6C6A66">${modeConfig.subtitle}</text>
-      </svg>
-    `);
+    const createOverlay = (width: number, height: number) => {
+      const overlayWidth = Math.max(320, width);
+      const overlayHeight = Math.max(220, height);
+      const cardWidth = clamp(Math.round(overlayWidth * 0.2), 200, 240);
+      const cardHeight = 72;
+      const cardX = Math.max(24, overlayWidth - cardWidth - 24);
+      const cardY = 24;
+      const dotX = cardX + 20;
+      const dotY = cardY + 18;
+      const titleX = cardX + 54;
+      const titleY = cardY + 34;
+      const subtitleY = cardY + 59;
+
+      return Buffer.from(`
+        <svg width="${overlayWidth}" height="${overlayHeight}" xmlns="http://www.w3.org/2000/svg">
+          <rect x="${cardX}" y="${cardY}" width="${cardWidth}" height="${cardHeight}" rx="18" fill="rgba(255,255,255,0.78)" />
+          <rect x="${dotX}" y="${dotY}" width="18" height="18" rx="9" fill="${badgeHue}" />
+          <text x="${titleX}" y="${titleY}" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#111111">${variantLabel}</text>
+          <text x="${titleX}" y="${subtitleY}" font-family="Inter, Arial, sans-serif" font-size="18" fill="#6C6A66">${modeConfig.subtitle}</text>
+        </svg>
+      `);
+    };
 
     const modulationVariants =
       input.mode === 'material_edit'
@@ -490,32 +506,48 @@ export class ImageService {
     } else if (input.mode === 'room_placement' && input.placement) {
       const roomImage = await this.getImage(input.placement.roomImageId);
       const roomBytes = await storage.readAsset(roomImage.filePath);
+      const roomMetadata = await sharp(roomBytes).rotate().metadata();
+      const roomWidth = Math.max(1, roomMetadata.width ?? 1);
+      const roomHeight = Math.max(1, roomMetadata.height ?? 1);
+      const placementLeft = clamp(Math.round(input.placement.x), 0, Math.max(0, roomWidth - 1));
+      const placementTop = clamp(Math.round(input.placement.y), 0, Math.max(0, roomHeight - 1));
+      const placementWidth = clamp(
+        Math.max(1, input.placement.width),
+        1,
+        Math.max(1, roomWidth - placementLeft)
+      );
+      const placementHeight = clamp(
+        Math.max(1, input.placement.height),
+        1,
+        Math.max(1, roomHeight - placementTop)
+      );
       const furnitureBuffer = await sharp(sourceBytes)
         .rotate()
         .resize({
-          width: Math.max(1, input.placement.width),
-          height: Math.max(1, input.placement.height),
+          width: placementWidth,
+          height: placementHeight,
           fit: 'contain',
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         })
         .modulate(modulation)
         .png()
         .toBuffer();
-      const shadowWidth = Math.max(1, Math.round(input.placement.width * 0.68));
-      const shadowHeight = Math.max(1, Math.round(input.placement.height * 0.12));
+      const shadowWidth = Math.max(1, Math.round(placementWidth * 0.68));
+      const shadowHeight = Math.max(1, Math.round(placementHeight * 0.12));
       const shadowLeft = Math.max(
         0,
-        Math.round(input.placement.x + (input.placement.width - shadowWidth) / 2)
+        Math.round(placementLeft + (placementWidth - shadowWidth) / 2)
       );
       const shadowTop = Math.max(
         0,
-        Math.round(input.placement.y + input.placement.height - shadowHeight / 2)
+        Math.round(placementTop + placementHeight - shadowHeight / 2)
       );
       const shadow = Buffer.from(`
         <svg width="${shadowWidth}" height="${shadowHeight}" xmlns="http://www.w3.org/2000/svg">
           <ellipse cx="${shadowWidth / 2}" cy="${shadowHeight / 2}" rx="${shadowWidth / 2}" ry="${shadowHeight / 2}" fill="rgba(0,0,0,0.14)" />
         </svg>
       `);
+      const overlay = createOverlay(roomWidth, roomHeight);
 
       const baseImage = sharp(roomBytes)
         .rotate()
@@ -523,8 +555,8 @@ export class ImageService {
           { input: shadow, left: shadowLeft, top: shadowTop },
           {
             input: furnitureBuffer,
-            left: Math.round(input.placement.x),
-            top: Math.round(input.placement.y)
+            left: placementLeft,
+            top: placementTop
           },
           { input: overlay }
         ]);
@@ -532,6 +564,11 @@ export class ImageService {
       metadata = await baseImage.metadata();
       generatedBuffer = await baseImage.png().toBuffer();
     } else {
+      const sourceMetadata = await sharp(sourceBytes).rotate().metadata();
+      const overlay = createOverlay(
+        Math.max(1, sourceMetadata.width ?? 1),
+        Math.max(1, sourceMetadata.height ?? 1)
+      );
       const baseImage = sharp(sourceBytes)
         .rotate()
         .modulate(modulation)
