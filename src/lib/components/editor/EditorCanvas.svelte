@@ -131,7 +131,6 @@
             <p class="canvas__rename-error">{renameError}</p>
           {/if}
         </div>
-        <span class="canvas__type">{typeLabel}</span>
       </div>
       <div class="canvas__details">
         <span>Projekt: {projectName}</span>
@@ -142,6 +141,7 @@
         {#if createdAt}
           <span>{toShortDate(createdAt)}</span>
         {/if}
+        <span>{typeLabel}</span>
       </div>
     </div>
   </Card>
@@ -207,14 +207,6 @@
     flex-wrap: wrap;
     gap: 8px 12px;
     font-size: 0.9rem;
-  }
-
-  .canvas__type {
-    color: var(--color-text-muted);
-    font-size: 0.82rem;
-    font-style: italic;
-    font-weight: 400;
-    white-space: nowrap;
   }
 
   .canvas__edit-button {

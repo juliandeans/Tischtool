@@ -10,7 +10,11 @@
   import LibraryGrid from '$lib/components/library/LibraryGrid.svelte';
   import PromptDebugPanel from '$lib/components/ui/PromptDebugPanel.svelte';
   import type { PostGenerationPreviewResponse, PostGenerationResponse } from '$lib/types/api';
-  import type { GenerationMode, MaterialEditSubMode, PromptDebugPreview } from '$lib/types/generation';
+  import type {
+    GenerationMode,
+    MaterialEditSubMode,
+    PromptDebugPreview
+  } from '$lib/types/generation';
   import { toShortDate } from '$lib/utils/dates';
 
   export let data;
@@ -160,16 +164,41 @@
 </script>
 
 <div class="split-layout">
-  <EditorCanvas
-    imageId={data.image.id}
-    title={data.image.title}
-    imageUrl={data.image.imageUrl}
-    projectName={data.image.projectName}
-    type={data.image.type}
-    createdAt={data.image.createdAt}
-    width={data.image.width}
-    height={data.image.height}
-  />
+  <div class="stack editor-page__main-column">
+    <EditorCanvas
+      imageId={data.image.id}
+      title={data.image.title}
+      imageUrl={data.image.imageUrl}
+      projectName={data.image.projectName}
+      type={data.image.type}
+      createdAt={data.image.createdAt}
+      width={data.image.width}
+      height={data.image.height}
+    />
+    {#if generationSuccess}
+      <Card accent="blue">
+        <p class="editor-page__message editor-page__message--success">{generationSuccess}</p>
+      </Card>
+    {/if}
+    <section class="stack">
+      <LibraryGrid
+        items={data.variants.map((image) => ({
+          id: image.id,
+          title: image.title,
+          project: image.projectName,
+          imageId: image.id,
+          time: image.createdAt,
+          status: image.type,
+          thumbnailUrl: image.thumbnailUrl,
+          downloadUrl: image.downloadUrl,
+          editUrl: image.editUrl,
+          width: image.width,
+          height: image.height
+        }))}
+        loading={Boolean($navigating)}
+      />
+    </section>
+  </div>
   <div class="stack">
     <EditorSidebar
       error={generationError}
@@ -205,12 +234,6 @@
 </div>
 
 <div class="stack editor-page__extras">
-  {#if generationSuccess}
-    <Card accent="blue">
-      <p class="editor-page__message editor-page__message--success">{generationSuccess}</p>
-    </Card>
-  {/if}
-
   {#if data.debugEnabled && latestPromptDebug}
     <PromptDebugPanel
       title="Zuletzt gesendeter Prompt"
@@ -252,32 +275,13 @@
       </div>
     </Card>
   {/if}
-
-  <section class="stack">
-    <div class="section-header editor-page__variants-header">
-      <h2>Ergebnisse aus diesem Bild</h2>
-      <p>
-        Jede neue Variante bleibt als Child-Bild erhalten und kann direkt wieder im Editor geöffnet
-        werden.
-      </p>
-    </div>
-    <LibraryGrid
-      items={data.variants.map((image) => ({
-        id: image.id,
-        title: image.title,
-        project: image.projectName,
-        time: image.createdAt,
-        status: image.type,
-        thumbnailUrl: image.thumbnailUrl,
-        downloadUrl: image.downloadUrl,
-        editUrl: image.editUrl
-      }))}
-      loading={Boolean($navigating)}
-    />
-  </section>
 </div>
 
 <style>
+  .editor-page__main-column {
+    min-width: 0;
+  }
+
   .editor-page__extras {
     margin-top: var(--space-4);
   }
@@ -299,13 +303,5 @@
     overflow-x: auto;
     padding: var(--space-3);
     white-space: pre-wrap;
-  }
-
-  .editor-page__variants-header {
-    margin-bottom: 0;
-  }
-
-  .editor-page__variants-header h2 {
-    margin: 0;
   }
 </style>

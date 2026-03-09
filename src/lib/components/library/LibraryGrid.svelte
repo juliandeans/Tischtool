@@ -13,11 +13,14 @@
     id: string;
     title: string;
     project: string;
+    imageId?: string;
     time: string;
     status: string;
     thumbnailUrl: string;
     downloadUrl: string;
     editUrl: string;
+    width?: number | null;
+    height?: number | null;
   };
 
   export let items: ImageItem[] = [];
