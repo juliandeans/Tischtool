@@ -19,6 +19,7 @@
     {...$$restProps}
     aria-disabled={disabled || loading ? 'true' : undefined}
     class={classes}
+    on:click
     {download}
     {href}
     {rel}
@@ -32,7 +33,13 @@
     {/if}
   </a>
 {:else}
-  <button {...$$restProps} {type} class={classes} disabled={disabled || loading}>
+  <button
+    {...$$restProps}
+    {type}
+    class={classes}
+    disabled={disabled || loading}
+    on:click
+  >
     {#if loading}
       <span class="button__spinner" aria-hidden="true"></span>
       <span>Lädt...</span>

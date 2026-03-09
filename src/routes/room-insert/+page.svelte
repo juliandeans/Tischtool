@@ -94,7 +94,13 @@
   $: furnitureImage = data.images.find((image) => image.id === selectedFurnitureImageId) ?? null;
 
   const loadPromptPreview = async () => {
-    if (!browser || !roomInsertState || !selectedProjectId || !roomInsertState.furnitureImageId) {
+    if (
+      !browser ||
+      !data.debugEnabled ||
+      !roomInsertState ||
+      !selectedProjectId ||
+      !roomInsertState.furnitureImageId
+    ) {
       promptPreviewLoading = false;
       return;
     }
@@ -151,7 +157,11 @@
     promptPreview = payload.promptDebug;
   };
 
-  $: if (browser && roomInsertState && selectedProjectId && roomInsertState.furnitureImageId) {
+  $: if (!data.debugEnabled) {
+    promptPreview = null;
+    promptPreviewError = '';
+    promptPreviewLoading = false;
+  } else if (browser && roomInsertState && selectedProjectId && roomInsertState.furnitureImageId) {
     if (promptPreviewTimer) {
       clearTimeout(promptPreviewTimer);
     }
@@ -349,13 +359,15 @@
         }}
         on:uploadroom={handleRoomUpload}
       />
-      <PromptDebugPanel
-        title="Prompt-Vorschau"
-        preview={promptPreview}
-        loading={promptPreviewLoading}
-        error={promptPreviewError}
-        emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle Stück-platzieren-Prompt-Vorschau."
-      />
+      {#if data.debugEnabled}
+        <PromptDebugPanel
+          title="Prompt-Vorschau"
+          preview={promptPreview}
+          loading={promptPreviewLoading}
+          error={promptPreviewError}
+          emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle Stück-platzieren-Prompt-Vorschau."
+        />
+      {/if}
     </div>
   {:else}
     <div class="split-layout room-insert__workspace">
@@ -402,19 +414,21 @@
           }}
           on:uploadroom={handleRoomUpload}
         />
-        <PromptDebugPanel
-          title="Prompt-Vorschau"
-          preview={promptPreview}
-          loading={promptPreviewLoading}
-          error={promptPreviewError}
-          emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle Stück-platzieren-Prompt-Vorschau."
-        />
+        {#if data.debugEnabled}
+          <PromptDebugPanel
+            title="Prompt-Vorschau"
+            preview={promptPreview}
+            loading={promptPreviewLoading}
+            error={promptPreviewError}
+            emptyMessage="Wähle Projekt und Möbelbild, dann erscheint hier die aktuelle Stück-platzieren-Prompt-Vorschau."
+          />
+        {/if}
       </div>
     </div>
   {/if}
 
   <div class="stack room-insert__extras">
-    {#if latestPromptDebug}
+    {#if data.debugEnabled && latestPromptDebug}
       <PromptDebugPanel
         title="Zuletzt gesendeter Prompt"
         preview={latestPromptDebug}

@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
+import { readProviderDebugEnabled } from '$lib/server/provider-settings';
 import { imageService } from '$lib/server/services/ImageService';
 import { presetService } from '$lib/server/services/PresetService';
 import { projectService } from '$lib/server/services/ProjectService';
@@ -36,7 +37,7 @@ const readMaterialEditSubMode = (value: unknown): MaterialEditSubMode =>
 const readVariants = (value: unknown) =>
   typeof value === 'number' && value >= 1 && value <= 4 ? String(value) : '1';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, cookies }) => {
   try {
     const image = await imageService.getEditorImage(params.imageId);
     const [project, variants, presets, parentImage] = await Promise.all([
@@ -50,6 +51,7 @@ export const load: PageServerLoad = async ({ params }) => {
     const initialMode = readMode(promptSnapshot?.mode);
 
     return {
+      debugEnabled: readProviderDebugEnabled(cookies),
       image,
       project,
       variants,

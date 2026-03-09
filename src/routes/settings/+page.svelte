@@ -8,100 +8,104 @@
 </script>
 
 <div class="settings-layout">
-  <Card accent="red">
-    <div class="stack settings-card">
-      <div class="section-head">
-        <h2>Provider-Konfiguration</h2>
-        <p>
-          Nicht-geheime Vertex-Werte werden serverseitig aus der Umgebung gelesen. Credentials
-          bleiben vollständig im Backend.
-        </p>
-      </div>
+  {#if data.providerSettings.providerDebugEnabled}
+    <Card accent="red">
+      <div class="stack settings-card">
+        <div class="section-head">
+          <h2>Provider-Konfiguration</h2>
+          <p>
+            Nicht-geheime Vertex-Werte werden serverseitig aus der Umgebung gelesen. Credentials
+            bleiben vollständig im Backend.
+          </p>
+        </div>
 
-      <div class="env-grid">
-        <Input
-          id="settings-vertex-project-id"
-          label="Vertex Project ID"
-          value={data.providerSettings.vertexProjectId || 'Nicht gesetzt'}
-          readonly
-        />
-        <Input
-          id="settings-vertex-location"
-          label="Vertex Location"
-          value={data.providerSettings.vertexLocation || 'Nicht gesetzt'}
-          readonly
-        />
-        {#if data.providerSettings.imageModel === 'imagen-3'}
+        <div class="env-grid">
           <Input
-            id="settings-vertex-model"
-            label="Vertex Model"
-            value={data.providerSettings.vertexModel || 'Nicht gesetzt'}
+            id="settings-vertex-project-id"
+            label="Vertex Project ID"
+            value={data.providerSettings.vertexProjectId || 'Nicht gesetzt'}
             readonly
           />
-        {/if}
-      </div>
+          <Input
+            id="settings-vertex-location"
+            label="Vertex Location"
+            value={data.providerSettings.vertexLocation || 'Nicht gesetzt'}
+            readonly
+          />
+          {#if data.providerSettings.imageModel === 'imagen-3'}
+            <Input
+              id="settings-vertex-model"
+              label="Vertex Model"
+              value={data.providerSettings.vertexModel || 'Nicht gesetzt'}
+              readonly
+            />
+          {/if}
+        </div>
 
-      <p class="note">{data.credentialsHint}</p>
-    </div>
-  </Card>
+        <p class="note">{data.credentialsHint}</p>
+      </div>
+    </Card>
+  {/if}
 
   <Card accent="blue">
     <form class="stack settings-card" method="POST">
-      <div class="section-head">
-        <h2>Betriebsmodus</h2>
-        <p>
-          Hier schaltest du zwischen Test-/Fallback-Betrieb und echtem Google-Vertex-Betrieb um. Die
-          Einstellung gilt für diesen Browser.
+      {#if data.providerSettings.providerDebugEnabled}
+        <div class="section-head">
+          <h2>Betriebsmodus</h2>
+          <p>
+            Hier schaltest du zwischen Test-/Fallback-Betrieb und echtem Google-Vertex-Betrieb um.
+            Die Einstellung gilt für diesen Browser.
+          </p>
+        </div>
+
+        <div class="mode-grid">
+          <label
+            class:selected={data.providerSettings.providerPreference === 'fake'}
+            class="mode-card"
+          >
+            <input
+              type="radio"
+              name="providerPreference"
+              value="fake"
+              checked={data.providerSettings.providerPreference === 'fake'}
+            />
+            <span class="mode-card__copy">
+              <strong>Test / Fallback</strong>
+              <small>
+                Nutzt bewusst den bestehenden Dev-Flow ohne echte Bilderzeugung über Google.
+              </small>
+            </span>
+          </label>
+
+          <label
+            class:selected={data.providerSettings.providerPreference === 'real'}
+            class="mode-card"
+          >
+            <input
+              type="radio"
+              name="providerPreference"
+              value="real"
+              checked={data.providerSettings.providerPreference === 'real'}
+            />
+            <span class="mode-card__copy">
+              <strong>Echter Google-Vertex-Betrieb</strong>
+              <small>
+                Verwendet für `environment_edit` den echten Vertex-Provider, sofern Konfiguration
+                und ADC verfügbar sind.
+              </small>
+            </span>
+          </label>
+        </div>
+
+        <p class="note">
+          Aktuell gewählt:
+          <strong>
+            {data.providerSettings.providerPreference === 'real'
+              ? 'Echter Google-Vertex-Betrieb'
+              : 'Test / Fallback'}
+          </strong>
         </p>
-      </div>
-
-      <div class="mode-grid">
-        <label
-          class:selected={data.providerSettings.providerPreference === 'fake'}
-          class="mode-card"
-        >
-          <input
-            type="radio"
-            name="providerPreference"
-            value="fake"
-            checked={data.providerSettings.providerPreference === 'fake'}
-          />
-          <span class="mode-card__copy">
-            <strong>Test / Fallback</strong>
-            <small>
-              Nutzt bewusst den bestehenden Dev-Flow ohne echte Bilderzeugung über Google.
-            </small>
-          </span>
-        </label>
-
-        <label
-          class:selected={data.providerSettings.providerPreference === 'real'}
-          class="mode-card"
-        >
-          <input
-            type="radio"
-            name="providerPreference"
-            value="real"
-            checked={data.providerSettings.providerPreference === 'real'}
-          />
-          <span class="mode-card__copy">
-            <strong>Echter Google-Vertex-Betrieb</strong>
-            <small>
-              Verwendet für `environment_edit` den echten Vertex-Provider, sofern Konfiguration und
-              ADC verfügbar sind.
-            </small>
-          </span>
-        </label>
-      </div>
-
-      <p class="note">
-        Aktuell gewählt:
-        <strong>
-          {data.providerSettings.providerPreference === 'real'
-            ? 'Echter Google-Vertex-Betrieb'
-            : 'Test / Fallback'}
-        </strong>
-      </p>
+      {/if}
 
       <div class="section-head">
         <h2>Bildgenerierung</h2>
@@ -123,19 +127,6 @@
         ]}
       />
 
-      <label class="toggle">
-        <input
-          type="checkbox"
-          name="providerDebugEnabled"
-          checked={data.providerSettings.providerDebugEnabled}
-        />
-        <span class="toggle__copy">
-          <strong>Prompt- und Provider-Debug bevorzugen</strong>
-          <small>Bereitet eine ausführlichere technische Sicht für die nächsten Schritte vor.</small
-          >
-        </span>
-      </label>
-
       {#if form?.error}
         <p class="message message--error">{form.error}</p>
       {/if}
@@ -144,62 +135,78 @@
         <p class="message message--success">Settings wurden für diesen Browser gespeichert.</p>
       {/if}
 
+      <label class="toggle">
+        <input
+          type="checkbox"
+          name="providerDebugEnabled"
+          checked={data.providerSettings.providerDebugEnabled}
+        />
+        <span class="toggle__copy">
+          <strong>Debugging aktivieren</strong>
+          <small>
+            Zeigt technische Prompt-, Provider- und Diagnoseinformationen in der App an.
+          </small>
+        </span>
+      </label>
+
       <div class="cluster">
         <Button type="submit" variant="primary">Settings speichern</Button>
       </div>
     </form>
   </Card>
 
-  <Card accent={data.providerStatus.canUseVertex ? 'blue' : 'yellow'}>
-    <div class="stack settings-card">
-      <div class="section-head">
-        <h2>Provider-Status</h2>
-        <p>
-          Der Status wird serverseitig aus Konfiguration, ADC und aktueller Präferenz ermittelt.
-        </p>
-      </div>
+  {#if data.providerSettings.providerDebugEnabled}
+    <Card accent={data.providerStatus.canUseVertex ? 'blue' : 'yellow'}>
+      <div class="stack settings-card">
+        <div class="section-head">
+          <h2>Provider-Status</h2>
+          <p>
+            Der Status wird serverseitig aus Konfiguration, ADC und aktueller Präferenz ermittelt.
+          </p>
+        </div>
 
-      <div class="status-grid">
-        <div class="status-item">
-          <span class="muted">Konfiguration</span>
-          <strong>{data.providerStatus.configComplete ? 'vollständig' : 'unvollständig'}</strong>
+        <div class="status-grid">
+          <div class="status-item">
+            <span class="muted">Konfiguration</span>
+            <strong>{data.providerStatus.configComplete ? 'vollständig' : 'unvollständig'}</strong>
+          </div>
+          <div class="status-item">
+            <span class="muted">ADC / Server-Auth</span>
+            <strong>{data.providerStatus.authAvailable ? 'verfügbar' : 'nicht verfügbar'}</strong>
+          </div>
+          <div class="status-item">
+            <span class="muted">Bevorzugter Flow</span>
+            <strong>
+              {data.providerStatus.preferredFlow === 'real' ? 'echter Provider' : 'Fake-Flow'}
+            </strong>
+          </div>
+          <div class="status-item">
+            <span class="muted">Aktiver Flow</span>
+            <strong
+              >{data.providerStatus.effectiveFlow === 'vertex' ? 'Vertex' : 'Fake-Fallback'}</strong
+            >
+          </div>
         </div>
-        <div class="status-item">
-          <span class="muted">ADC / Server-Auth</span>
-          <strong>{data.providerStatus.authAvailable ? 'verfügbar' : 'nicht verfügbar'}</strong>
-        </div>
-        <div class="status-item">
-          <span class="muted">Bevorzugter Flow</span>
-          <strong>
-            {data.providerStatus.preferredFlow === 'real' ? 'echter Provider' : 'Fake-Flow'}
-          </strong>
-        </div>
-        <div class="status-item">
-          <span class="muted">Aktiver Flow</span>
-          <strong
-            >{data.providerStatus.effectiveFlow === 'vertex' ? 'Vertex' : 'Fake-Fallback'}</strong
-          >
-        </div>
-      </div>
 
-      <div class="status-copy">
-        <p class="message message--neutral">{data.providerStatus.statusMessage}</p>
-        <p class="muted">{data.providerStatus.authMessage}</p>
-        {#if data.providerStatus.fallbackReason}
-          <p class="muted">Fallback-Grund: {data.providerStatus.fallbackReason}</p>
-        {/if}
-        <p class="muted">
-          Zuletzt geprüft: {new Date(data.providerStatus.checkedAt).toLocaleString('de-DE')}
-        </p>
-      </div>
+        <div class="status-copy">
+          <p class="message message--neutral">{data.providerStatus.statusMessage}</p>
+          <p class="muted">{data.providerStatus.authMessage}</p>
+          {#if data.providerStatus.fallbackReason}
+            <p class="muted">Fallback-Grund: {data.providerStatus.fallbackReason}</p>
+          {/if}
+          <p class="muted">
+            Zuletzt geprüft: {new Date(data.providerStatus.checkedAt).toLocaleString('de-DE')}
+          </p>
+        </div>
 
-      <div class="cluster">
-        <Button href="/api/provider/status" target="_blank" rel="noreferrer" variant="secondary">
-          Status-Endpoint öffnen
-        </Button>
+        <div class="cluster">
+          <Button href="/api/provider/status" target="_blank" rel="noreferrer" variant="secondary">
+            Status-Endpoint öffnen
+          </Button>
+        </div>
       </div>
-    </div>
-  </Card>
+    </Card>
+  {/if}
 </div>
 
 <style>

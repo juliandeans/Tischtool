@@ -60,6 +60,30 @@
 </script>
 
 <div class="stack page-body--flush">
+  <ProjectGrid
+    items={data.projects.map((project) => ({
+      title: project.name,
+      meta: project.description ?? 'Kein Beschreibungstext',
+      href: `/projects/${project.id}`,
+      imageCount: project.imageCount,
+      coverThumbnailUrl: project.coverThumbnailUrl
+    }))}
+    loading={Boolean($navigating)}
+  >
+    <Button
+      slot="actions"
+      type="button"
+      variant="primary"
+      on:click={() => {
+        createError = '';
+        createSuccess = '';
+        showCreateForm = true;
+      }}
+    >
+      Projekt anlegen
+    </Button>
+  </ProjectGrid>
+
   <div class="page-actions">
     <Button
       type="button"
@@ -105,30 +129,6 @@
   {#if createSuccess}
     <p class="project-form__success">{createSuccess}</p>
   {/if}
-
-  <ProjectGrid
-    items={data.projects.map((project) => ({
-      title: project.name,
-      meta: project.description ?? 'Kein Beschreibungstext',
-      href: `/projects/${project.id}`,
-      imageCount: project.imageCount,
-      coverThumbnailUrl: project.coverThumbnailUrl
-    }))}
-    loading={Boolean($navigating)}
-  >
-    <Button
-      slot="actions"
-      type="button"
-      variant="primary"
-      on:click={() => {
-        createError = '';
-        createSuccess = '';
-        showCreateForm = true;
-      }}
-    >
-      Projekt anlegen
-    </Button>
-  </ProjectGrid>
 </div>
 
 <style>

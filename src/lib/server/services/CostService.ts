@@ -1,10 +1,30 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 
 import { getDb, isDatabaseConfigured } from '$lib/server/db';
 import { costLogs, generations, projects } from '$lib/server/db/schema';
 import type { CostLogListItem, CostSummary } from '$lib/types/cost';
 
 const toNumber = (value: unknown) => Number(value ?? 0);
+const parseDateStart = (value?: string | null) => {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const parseDateEndExclusive = (value?: string | null) => {
+  const date = parseDateStart(value);
+
+  if (!date) {
+    return null;
+  }
+
+  const nextDay = new Date(date);
+  nextDay.setDate(nextDay.getDate() + 1);
+  return nextDay;
+};
 
 export const calculateCostSummary = (input: {
   logs: Array<{ totalPrice: number; createdAt: string }>;
@@ -88,13 +108,33 @@ export class CostService {
     });
   }
 
-  async getLogs(): Promise<CostLogListItem[]> {
+  async getLogs(filters?: {
+    projectId?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+  }): Promise<CostLogListItem[]> {
     if (!isDatabaseConfigured()) {
       return [];
     }
 
     const db = getDb();
-    const rows = await db
+    const conditions = [];
+    const startDate = parseDateStart(filters?.startDate);
+    const endDateExclusive = parseDateEndExclusive(filters?.endDate);
+
+    if (filters?.projectId) {
+      conditions.push(eq(projects.id, filters.projectId));
+    }
+
+    if (startDate) {
+      conditions.push(gte(costLogs.createdAt, startDate));
+    }
+
+    if (endDateExclusive) {
+      conditions.push(lt(costLogs.createdAt, endDateExclusive));
+    }
+
+    const query = db
       .select({
         id: costLogs.id,
         projectId: projects.id,
@@ -107,6 +147,8 @@ export class CostService {
       .innerJoin(generations, eq(costLogs.generationId, generations.id))
       .innerJoin(projects, eq(generations.projectId, projects.id))
       .orderBy(desc(costLogs.createdAt));
+
+    const rows = await (conditions.length ? query.where(and(...conditions)) : query);
 
     return rows.map((row) => ({
       id: row.id,

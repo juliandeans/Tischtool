@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 
+import { readProviderDebugEnabled } from '$lib/server/provider-settings';
 import { imageService } from '$lib/server/services/ImageService';
 import { presetService } from '$lib/server/services/PresetService';
 import { projectService } from '$lib/server/services/ProjectService';
@@ -12,7 +13,7 @@ const toPresetValue = (name: string) =>
     .replace(/ö/g, 'oe')
     .replace(/ü/g, 'ue');
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, cookies }) => {
   const requestedProjectId = url.searchParams.get('projectId');
   const requestedRoomImageId = url.searchParams.get('roomImageId');
   const requestedFurnitureImageId = url.searchParams.get('furnitureImageId');
@@ -31,6 +32,7 @@ export const load: PageServerLoad = async ({ url }) => {
   ]);
 
   return {
+    debugEnabled: readProviderDebugEnabled(cookies),
     projects,
     selectedProjectId,
     selectedRoomImageId: requestedRoomImageId,

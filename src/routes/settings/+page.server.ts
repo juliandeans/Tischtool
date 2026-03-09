@@ -2,7 +2,7 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 import { providerStatusService } from '$lib/server/services/ProviderStatusService';
-import { writeProviderPreferences } from '$lib/server/provider-settings';
+import { readProviderPreference, writeProviderPreferences } from '$lib/server/provider-settings';
 import type { ImageModel, ProviderFlowPreference } from '$lib/types/settings';
 
 const isProviderPreference = (value: string): value is ProviderFlowPreference =>
@@ -26,7 +26,9 @@ export const load: PageServerLoad = async ({ cookies }) => {
 export const actions: Actions = {
   default: async ({ request, cookies }) => {
     const formData = await request.formData();
-    const providerPreference = String(formData.get('providerPreference') ?? '');
+    const providerPreference = String(
+      formData.get('providerPreference') ?? readProviderPreference(cookies)
+    );
     const providerDebugEnabled = formData.get('providerDebugEnabled') === 'on';
     const imageModel = String(formData.get('imageModel') ?? '');
 

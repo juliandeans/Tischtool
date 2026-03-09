@@ -42,7 +42,7 @@
   let promptPreviewRequestId = 0;
 
   const loadPromptPreview = async () => {
-    if (!browser || !editorState) {
+    if (!browser || !data.debugEnabled || !editorState) {
       return;
     }
 
@@ -91,7 +91,11 @@
     promptPreview = payload.promptDebug;
   };
 
-  $: if (browser && editorState) {
+  $: if (!data.debugEnabled) {
+    promptPreview = null;
+    promptPreviewError = '';
+    promptPreviewLoading = false;
+  } else if (browser && editorState) {
     if (promptPreviewTimer) {
       clearTimeout(promptPreviewTimer);
     }
@@ -188,13 +192,15 @@
         editorState = event.detail;
       }}
     />
-    <PromptDebugPanel
-      title="Prompt-Vorschau"
-      preview={promptPreview}
-      loading={promptPreviewLoading}
-      error={promptPreviewError}
-      emptyMessage="Die Vorschau erscheint automatisch, sobald die aktuellen Editor-Einstellungen erfasst sind."
-    />
+    {#if data.debugEnabled}
+      <PromptDebugPanel
+        title="Prompt-Vorschau"
+        preview={promptPreview}
+        loading={promptPreviewLoading}
+        error={promptPreviewError}
+        emptyMessage="Die Vorschau erscheint automatisch, sobald die aktuellen Editor-Einstellungen erfasst sind."
+      />
+    {/if}
   </div>
 </div>
 
@@ -205,7 +211,7 @@
     </Card>
   {/if}
 
-  {#if latestPromptDebug}
+  {#if data.debugEnabled && latestPromptDebug}
     <PromptDebugPanel
       title="Zuletzt gesendeter Prompt"
       preview={latestPromptDebug}
@@ -238,7 +244,7 @@
     </div>
   </Card>
 
-  {#if data.image.promptSnapshot?.promptText}
+  {#if data.debugEnabled && data.image.promptSnapshot?.promptText}
     <Card>
       <div class="stack">
         <strong>Letzter Prompt</strong>
