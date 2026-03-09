@@ -394,6 +394,54 @@ export class ImageService {
     };
   }
 
+  async updateImageTitle(id: string, title: string) {
+    if (!isDatabaseConfigured()) {
+      throw new Error('DATABASE_URL is not configured.');
+    }
+
+    const nextTitle = title.trim();
+
+    if (!nextTitle) {
+      throw new Error('Bildname darf nicht leer sein.');
+    }
+
+    const db = getDb();
+    const [row] = await db
+      .select({
+        id: images.id,
+        settingsSnapshot: images.settingsSnapshot
+      })
+      .from(images)
+      .where(eq(images.id, id))
+      .limit(1);
+
+    if (!row) {
+      throw new Error(`Image ${id} not found.`);
+    }
+
+    const settings =
+      row.settingsSnapshot &&
+      typeof row.settingsSnapshot === 'object' &&
+      !Array.isArray(row.settingsSnapshot)
+        ? (row.settingsSnapshot as Record<string, unknown>)
+        : {};
+
+    await db
+      .update(images)
+      .set({
+        settingsSnapshot: {
+          ...settings,
+          originalFileName: nextTitle
+        }
+      })
+      .where(eq(images.id, id));
+
+    return {
+      id: row.id,
+      title: nextTitle
+    };
+  }
+
   async createGeneratedVariant(input: {
     sourceImageId: string;
     generationId: string;

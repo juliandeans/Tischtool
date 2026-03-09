@@ -40,6 +40,17 @@ export type GetImageResponse = {
   image: ImageDetail;
 };
 
+export type PatchImageTitleRequest = {
+  title: string;
+};
+
+export type PatchImageTitleResponse = {
+  image: {
+    id: string;
+    title: string;
+  };
+};
+
 export type PostGenerationRequest = CreateGenerationInput;
 
 export type PostGenerationResponse = {

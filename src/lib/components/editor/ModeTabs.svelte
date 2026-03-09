@@ -43,7 +43,7 @@
   .tabs__button {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 2px;
+    border-radius: var(--border-radius);
     box-shadow: var(--color-shadow-inset);
     min-height: 44px;
     padding: 10px 14px;
