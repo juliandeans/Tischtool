@@ -127,6 +127,8 @@
             value: 'gemini-2.5-flash-image-preview',
             label: 'Gemini 2.5 Flash Image'
           },
+          { value: 'flux-2-pro', label: 'FLUX.2 Pro (BFL)' },
+          { value: 'flux-2-pro-preview', label: 'FLUX.2 Pro Preview (BFL)' },
           { value: 'gpt-image-1', label: 'GPT Image 1 (OpenAI)' },
           { value: 'imagen-3', label: 'Imagen 3' }
         ]}

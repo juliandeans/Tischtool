@@ -447,11 +447,15 @@ export class VertexImageService {
       selectedImageModel === 'gemini-3.1-flash-image-preview' ||
       selectedImageModel === 'gemini-2.5-flash-image-preview';
     const useOpenAIImageModel = selectedImageModel === 'gpt-image-1';
+    const useFluxImageModel =
+      selectedImageModel === 'flux-2-pro' || selectedImageModel === 'flux-2-pro-preview';
     const selectedVertexModel =
       selectedImageModel === 'gemini-3-pro-image' ||
       selectedImageModel === 'gemini-3.1-flash-image-preview' ||
       selectedImageModel === 'gemini-2.5-flash-image-preview'
         ? selectedImageModel
+        : selectedImageModel === 'flux-2-pro' || selectedImageModel === 'flux-2-pro-preview'
+          ? selectedImageModel
         : selectedImageModel === 'gpt-image-1'
           ? selectedImageModel
           : configuration.model;
@@ -466,7 +470,7 @@ export class VertexImageService {
       };
     }
 
-    if (mode !== 'environment_edit' && !useGeminiImageModel && !useOpenAIImageModel) {
+    if (mode !== 'environment_edit' && !useGeminiImageModel && !useOpenAIImageModel && !useFluxImageModel) {
       return {
         useVertex: false,
         reason: 'Only environment_edit uses the real Vertex flow in this step.',
@@ -476,7 +480,7 @@ export class VertexImageService {
       };
     }
 
-    if (!configuration.configured && !useOpenAIImageModel) {
+    if (!configuration.configured && !useOpenAIImageModel && !useFluxImageModel) {
       return {
         useVertex: false,
         reason: 'Vertex environment variables are incomplete.',

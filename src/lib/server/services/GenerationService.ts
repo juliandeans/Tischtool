@@ -35,6 +35,11 @@ import {
   getGeminiGenerateContentUrl
 } from '$lib/server/vertex/gemini-image';
 import { vertexClient } from '$lib/server/vertex/client';
+import {
+  callFluxImageEdit,
+  FLUX_API_BASE_URL,
+  type FluxImageModel
+} from '$lib/server/flux/image';
 import { callOpenAIImageEdit, OPENAI_API_URL, OPENAI_IMAGE_MODEL } from '$lib/server/openai/image';
 
 type PromptBuildResult = ReturnType<typeof promptBuilder.build>;
@@ -58,6 +63,8 @@ const getActiveImageModel = (runtimeOptions?: GenerationRuntimeOptions) =>
   runtimeOptions?.imageModel === 'gemini-3-pro-image' ||
   runtimeOptions?.imageModel === 'gemini-3.1-flash-image-preview' ||
   runtimeOptions?.imageModel === 'gemini-2.5-flash-image-preview' ||
+  runtimeOptions?.imageModel === 'flux-2-pro' ||
+  runtimeOptions?.imageModel === 'flux-2-pro-preview' ||
   runtimeOptions?.imageModel === 'gpt-image-1'
     ? runtimeOptions.imageModel
     : 'imagen-3';
@@ -177,18 +184,24 @@ export class GenerationService {
       activeImageModel === 'gemini-3-pro-image' ||
       activeImageModel === 'gemini-3.1-flash-image-preview' ||
       activeImageModel === 'gemini-2.5-flash-image-preview';
+    const useFluxModel =
+      activeImageModel === 'flux-2-pro' || activeImageModel === 'flux-2-pro-preview';
     const useOpenAIModel = activeImageModel === 'gpt-image-1';
     const geminiModelId =
       useGeminiImageModel ? getGeminiModelId(activeImageModel) : null;
     const requestedModel =
       executionPlan.useVertex && useGeminiImageModel && geminiModelId
         ? geminiModelId
+        : executionPlan.useVertex && useFluxModel
+          ? activeImageModel
         : executionPlan.useVertex && useOpenAIModel
           ? OPENAI_IMAGE_MODEL
         : executionPlan.model;
     const plannedFlow =
       executionPlan.useVertex && useGeminiImageModel
         ? 'gemini'
+        : executionPlan.useVertex && useFluxModel
+          ? 'flux'
         : executionPlan.useVertex && useOpenAIModel
           ? 'openai'
         : executionPlan.useVertex
@@ -326,6 +339,18 @@ export class GenerationService {
               secondaryImage,
               runtimeOptions: runtimeOptionsWithDebug
             }))
+          : useFluxModel
+            ? await this.executeWithFluxFallback({
+                generationId: generation.id,
+                input: {
+                  ...input,
+                  placement: normalizedPlacement
+                },
+                prompt,
+                sourceImage,
+                secondaryImage,
+                runtimeOptions: runtimeOptionsWithDebug
+              })
           : useOpenAIModel
             ? await this.executeWithOpenAIFallback({
                 generationId: generation.id,
@@ -464,6 +489,119 @@ export class GenerationService {
       // Vertex failures fall back to the existing fake flow so the editor remains usable in dev.
       const fallbackReason =
         error instanceof VertexProviderError ? error.message : 'Unknown Vertex provider error.';
+
+      return this.executeFakeGeneration({
+        generationId: options.generationId,
+        input: options.input,
+        prompt: options.prompt,
+        fallbackReason,
+        vertexAttempted: true,
+        vertexError: error,
+        runtimeOptions: options.runtimeOptions
+      });
+    }
+  }
+
+  private async executeWithFluxFallback(options: {
+    generationId: string;
+    input: CreateGenerationInput;
+    prompt: PromptBuildResult;
+    sourceImage: Awaited<ReturnType<typeof imageService.getImage>>;
+    secondaryImage?: SecondaryImageInput;
+    runtimeOptions: GenerationRuntimeOptions;
+  }): Promise<GenerationExecutionResult> {
+    try {
+      const sourceImageBytes = Buffer.from(await storage.readAsset(options.sourceImage.filePath));
+      const fluxModel =
+        options.runtimeOptions.imageModel === 'flux-2-pro-preview'
+          ? 'flux-2-pro-preview'
+          : 'flux-2-pro';
+      const providerResponses = await Promise.all(
+        Array.from({ length: options.input.variantsRequested }, () =>
+          callFluxImageEdit(
+            {
+              sourceImageBuffer: sourceImageBytes,
+              sourceImageMimeType: options.sourceImage.mimeType,
+              secondaryImageBuffer: options.secondaryImage?.buffer,
+              secondaryImageMimeType: options.secondaryImage?.mimeType,
+              promptText: options.prompt.promptText
+            },
+            fluxModel satisfies FluxImageModel
+          )
+        )
+      );
+      const images = providerResponses.map((response) => ({
+        bytes: Buffer.from(response.imageBase64, 'base64'),
+        mimeType: response.mimeType
+      }));
+      const outputByteSizes = images.map((image) => image.bytes.byteLength);
+      const predictions: ProviderPredictionDebug[] = providerResponses.map((response, index) => ({
+        index,
+        fieldsPresent: ['downloaded-url'],
+        selectedImageField: 'downloaded-url',
+        mimeType: response.mimeType,
+        base64: summarizeBase64(response.imageBase64),
+        decodedByteLength: images[index]?.bytes.byteLength ?? null,
+        sha256: images[index] ? sha256Hex(images[index].bytes) : null,
+        decodeSucceeded: true,
+        decodeError: null
+      }));
+      const providerDebugRun: ProviderDebugRun = {
+        runId: options.runtimeOptions.debugRunId ?? createDebugRunId(),
+        usedFlow: 'vertex',
+        model: fluxModel,
+        requestType: 'edit',
+        requestEndpoint: 'images/edits',
+        endpointUrl: `${FLUX_API_BASE_URL}/${fluxModel}`,
+        sourceImageIncluded: true,
+        maskIncluded: false,
+        targetRegionIncluded: false,
+        sampleCount: options.input.variantsRequested,
+        fakeFallbackUsed: false,
+        fallbackReason: null,
+        responseStatus: 200,
+        predictionsCount: images.length,
+        outputMimeTypes: images.map((image) => image.mimeType),
+        outputByteSizes,
+        totalOutputBytes: outputByteSizes.reduce((sum, size) => sum + size, 0),
+        responseMetadata: null,
+        responseRootKeys: ['result', 'sample'],
+        rawResponsePreview: previewRawResponse(
+          JSON.stringify({
+            result: providerResponses.map((response) => ({
+              sample: '<downloaded-temporary-url>',
+              mimeType: response.mimeType
+            }))
+          })
+        ),
+        predictions,
+        artifacts: [],
+        persistedImages: [],
+        editStrategy: 'FLUX.2 async edit mit Polling und Download der temporären Ergebnis-URL.',
+        modelHint: null,
+        error: null
+      };
+      const providerResult: VertexGenerationResult = {
+        provider: 'vertex',
+        model: fluxModel,
+        usage: {
+          fakeGeneration: false
+        },
+        providerDebug: providerDebugRun,
+        images
+      };
+
+      return await this.persistVertexResult({
+        generationId: options.generationId,
+        input: options.input,
+        prompt: options.prompt,
+        providerResult,
+        runtimeOptions: options.runtimeOptions
+      });
+    } catch (error) {
+      console.error('[flux-debug] FEHLER:', error);
+      const fallbackReason =
+        error instanceof Error ? error.message : 'Unknown FLUX provider error.';
 
       return this.executeFakeGeneration({
         generationId: options.generationId,

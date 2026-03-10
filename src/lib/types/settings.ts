@@ -4,6 +4,8 @@ export type ImageModel =
   | "gemini-3-pro-image"
   | "gemini-3.1-flash-image-preview"
   | "gemini-2.5-flash-image-preview"
+  | "flux-2-pro"
+  | "flux-2-pro-preview"
   | "gpt-image-1";
 
 export type ProviderSettingsSnapshot = {

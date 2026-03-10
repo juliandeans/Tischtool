@@ -28,6 +28,8 @@ export const readImageModel = (cookies: Cookies): ImageModel => {
     val === "gemini-3-pro-image" ||
     val === "gemini-3.1-flash-image-preview" ||
     val === "gemini-2.5-flash-image-preview" ||
+    val === "flux-2-pro" ||
+    val === "flux-2-pro-preview" ||
     val === "gpt-image-1"
   )
     return val as ImageModel;

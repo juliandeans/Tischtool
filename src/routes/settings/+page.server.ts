@@ -16,6 +16,8 @@ const isImageModel = (value: string): value is ImageModel =>
   value === "gemini-3-pro-image" ||
   value === "gemini-3.1-flash-image-preview" ||
   value === "gemini-2.5-flash-image-preview" ||
+  value === "flux-2-pro" ||
+  value === "flux-2-pro-preview" ||
   value === "gpt-image-1";
 
 export const load: PageServerLoad = async ({ cookies }) => {
