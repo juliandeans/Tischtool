@@ -123,6 +123,10 @@
             value: 'gemini-3.1-flash-image-preview',
             label: 'Gemini 3.1 Flash Image'
           },
+          {
+            value: 'gemini-2.5-flash-image-preview',
+            label: 'Gemini 2.5 Flash Image'
+          },
           { value: 'gpt-image-1', label: 'GPT Image 1 (OpenAI)' },
           { value: 'imagen-3', label: 'Imagen 3' }
         ]}

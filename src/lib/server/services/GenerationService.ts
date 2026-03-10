@@ -29,6 +29,7 @@ import {
 } from '$lib/server/vertex/image';
 import {
   callGeminiImageEdit,
+  GEMINI_25_FLASH_IMAGE_MODEL,
   GEMINI_FLASH_IMAGE_MODEL,
   GEMINI_IMAGE_MODEL,
   getGeminiGenerateContentUrl
@@ -56,12 +57,22 @@ type GenerationExecutionResult = {
 const getActiveImageModel = (runtimeOptions?: GenerationRuntimeOptions) =>
   runtimeOptions?.imageModel === 'gemini-3-pro-image' ||
   runtimeOptions?.imageModel === 'gemini-3.1-flash-image-preview' ||
+  runtimeOptions?.imageModel === 'gemini-2.5-flash-image-preview' ||
   runtimeOptions?.imageModel === 'gpt-image-1'
     ? runtimeOptions.imageModel
     : 'imagen-3';
 
-const getGeminiModelId = (imageModel: 'gemini-3-pro-image' | 'gemini-3.1-flash-image-preview') =>
-  imageModel === 'gemini-3.1-flash-image-preview' ? GEMINI_FLASH_IMAGE_MODEL : GEMINI_IMAGE_MODEL;
+const getGeminiModelId = (
+  imageModel:
+    | 'gemini-3-pro-image'
+    | 'gemini-3.1-flash-image-preview'
+    | 'gemini-2.5-flash-image-preview'
+) =>
+  imageModel === 'gemini-3.1-flash-image-preview'
+    ? GEMINI_FLASH_IMAGE_MODEL
+    : imageModel === 'gemini-2.5-flash-image-preview'
+      ? GEMINI_25_FLASH_IMAGE_MODEL
+      : GEMINI_IMAGE_MODEL;
 
 export class GenerationService {
   previewGeneration(input: CreateGenerationInput, runtimeOptions?: GenerationRuntimeOptions) {
@@ -164,7 +175,8 @@ export class GenerationService {
     );
     const useGeminiImageModel =
       activeImageModel === 'gemini-3-pro-image' ||
-      activeImageModel === 'gemini-3.1-flash-image-preview';
+      activeImageModel === 'gemini-3.1-flash-image-preview' ||
+      activeImageModel === 'gemini-2.5-flash-image-preview';
     const useOpenAIModel = activeImageModel === 'gpt-image-1';
     const geminiModelId =
       useGeminiImageModel ? getGeminiModelId(activeImageModel) : null;
@@ -480,6 +492,8 @@ export class GenerationService {
       const geminiModelId = getGeminiModelId(
         options.runtimeOptions.imageModel === 'gemini-3.1-flash-image-preview'
           ? 'gemini-3.1-flash-image-preview'
+          : options.runtimeOptions.imageModel === 'gemini-2.5-flash-image-preview'
+            ? 'gemini-2.5-flash-image-preview'
           : 'gemini-3-pro-image'
       );
       const providerResponses = await Promise.all(

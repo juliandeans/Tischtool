@@ -23,6 +23,7 @@ import { getMaterialModeParameters } from '$lib/server/prompt-builder/modes/mate
 import { getRoomPlacementModeParameters } from '$lib/server/prompt-builder/modes/roomInsert';
 import {
   buildGeminiImageEditPayload,
+  GEMINI_25_FLASH_IMAGE_MODEL,
   GEMINI_FLASH_IMAGE_MODEL,
   GEMINI_IMAGE_MODEL,
   getGeminiGenerateContentUrl
@@ -419,6 +420,8 @@ export class PromptBuilder {
     const geminiModelId =
       runtimeOptions?.imageModel === 'gemini-3.1-flash-image-preview'
         ? GEMINI_FLASH_IMAGE_MODEL
+        : runtimeOptions?.imageModel === 'gemini-2.5-flash-image-preview'
+          ? GEMINI_25_FLASH_IMAGE_MODEL
         : runtimeOptions?.imageModel === 'gemini-3-pro-image'
           ? GEMINI_IMAGE_MODEL
           : null;

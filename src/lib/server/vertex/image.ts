@@ -444,11 +444,13 @@ export class VertexImageService {
     const selectedImageModel = runtimeOptions?.imageModel ?? 'imagen-3';
     const useGeminiImageModel =
       selectedImageModel === 'gemini-3-pro-image' ||
-      selectedImageModel === 'gemini-3.1-flash-image-preview';
+      selectedImageModel === 'gemini-3.1-flash-image-preview' ||
+      selectedImageModel === 'gemini-2.5-flash-image-preview';
     const useOpenAIImageModel = selectedImageModel === 'gpt-image-1';
     const selectedVertexModel =
       selectedImageModel === 'gemini-3-pro-image' ||
-      selectedImageModel === 'gemini-3.1-flash-image-preview'
+      selectedImageModel === 'gemini-3.1-flash-image-preview' ||
+      selectedImageModel === 'gemini-2.5-flash-image-preview'
         ? selectedImageModel
         : selectedImageModel === 'gpt-image-1'
           ? selectedImageModel

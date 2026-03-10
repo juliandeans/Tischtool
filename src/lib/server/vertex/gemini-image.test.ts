@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   callGeminiImageEdit,
+  GEMINI_25_FLASH_IMAGE_MODEL,
   GEMINI_FLASH_IMAGE_MODEL
 } from '$lib/server/vertex/gemini-image';
 
@@ -85,7 +86,7 @@ describe('callGeminiImageEdit', () => {
     expect(body.generationConfig).toEqual({
       responseModalities: ['TEXT', 'IMAGE']
     });
-    expect(body.contents[0].parts[0].inlineData.mimeType).toBe('image/png');
+    expect(body.contents[0].parts[0].inlineData.mimeType).toBe('image/jpeg');
     expect(body.contents[0].parts[0].inlineData.data).not.toBe(sourceImageBase64);
     expect(body.contents[0].parts[1].text).toBe(input.promptText);
   });
@@ -119,5 +120,53 @@ describe('callGeminiImageEdit', () => {
         'token-abc'
       )
     ).rejects.toThrow('Gemini response does not contain an image part.');
+  });
+
+  it('uses the Gemini 2.5 Flash Image model endpoint when requested', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'image/png',
+                    data: 'ZmFrZS1pbWFnZQ=='
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      })
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const sourceImageBase64 = await createSourceImageBase64();
+
+    await callGeminiImageEdit(
+      {
+        sourceImageBase64,
+        sourceImageMimeType: 'image/jpeg',
+        promptText: 'Bearbeite das Bild.'
+      },
+      'project-123',
+      'token-abc',
+      GEMINI_25_FLASH_IMAGE_MODEL
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `https://aiplatform.googleapis.com/v1/projects/project-123/locations/global/publishers/google/models/${GEMINI_25_FLASH_IMAGE_MODEL}:generateContent`,
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer token-abc',
+          'Content-Type': 'application/json'
+        })
+      })
+    );
   });
 });
