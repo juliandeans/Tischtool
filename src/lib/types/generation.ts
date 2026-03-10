@@ -184,7 +184,7 @@ export type ProviderDebugRequest = {
   plannedFlow: ProviderFlow;
   fallbackReason: string | null;
   requestType: ProviderRequestType;
-  requestEndpoint: 'predict' | 'generateContent' | 'dev-fake';
+  requestEndpoint: 'predict' | 'generateContent' | 'images/edits' | 'dev-fake';
   endpointUrl: string | null;
   negativePromptText: string | null;
   sourceImageIncluded: boolean;
@@ -205,7 +205,7 @@ export type ProviderDebugRun = {
   usedFlow: ProviderFlow;
   model: string;
   requestType: ProviderRequestType;
-  requestEndpoint: 'predict' | 'generateContent' | 'dev-fake';
+  requestEndpoint: 'predict' | 'generateContent' | 'images/edits' | 'dev-fake';
   endpointUrl: string | null;
   sourceImageIncluded: boolean;
   maskIncluded: boolean;

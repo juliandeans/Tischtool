@@ -34,6 +34,7 @@ import {
   getGeminiGenerateContentUrl
 } from '$lib/server/vertex/gemini-image';
 import { vertexClient } from '$lib/server/vertex/client';
+import { callOpenAIImageEdit, OPENAI_API_URL, OPENAI_IMAGE_MODEL } from '$lib/server/openai/image';
 
 type PromptBuildResult = ReturnType<typeof promptBuilder.build>;
 
@@ -54,7 +55,8 @@ type GenerationExecutionResult = {
 
 const getActiveImageModel = (runtimeOptions?: GenerationRuntimeOptions) =>
   runtimeOptions?.imageModel === 'gemini-3-pro-image' ||
-  runtimeOptions?.imageModel === 'gemini-3.1-flash-image-preview'
+  runtimeOptions?.imageModel === 'gemini-3.1-flash-image-preview' ||
+  runtimeOptions?.imageModel === 'gpt-image-1'
     ? runtimeOptions.imageModel
     : 'imagen-3';
 
@@ -160,16 +162,23 @@ export class GenerationService {
       input.mode,
       input.variantsRequested
     );
-    const useGeminiImageModel = activeImageModel !== 'imagen-3';
+    const useGeminiImageModel =
+      activeImageModel === 'gemini-3-pro-image' ||
+      activeImageModel === 'gemini-3.1-flash-image-preview';
+    const useOpenAIModel = activeImageModel === 'gpt-image-1';
     const geminiModelId =
-      activeImageModel === 'imagen-3' ? null : getGeminiModelId(activeImageModel);
+      useGeminiImageModel ? getGeminiModelId(activeImageModel) : null;
     const requestedModel =
       executionPlan.useVertex && useGeminiImageModel && geminiModelId
         ? geminiModelId
+        : executionPlan.useVertex && useOpenAIModel
+          ? OPENAI_IMAGE_MODEL
         : executionPlan.model;
     const plannedFlow =
       executionPlan.useVertex && useGeminiImageModel
         ? 'gemini'
+        : executionPlan.useVertex && useOpenAIModel
+          ? 'openai'
         : executionPlan.useVertex
           ? 'vertex'
           : 'dev-fake';
@@ -305,6 +314,18 @@ export class GenerationService {
               secondaryImage,
               runtimeOptions: runtimeOptionsWithDebug
             }))
+          : useOpenAIModel
+            ? await this.executeWithOpenAIFallback({
+                generationId: generation.id,
+                input: {
+                  ...input,
+                  placement: normalizedPlacement
+                },
+                prompt,
+                sourceImage,
+                secondaryImage,
+                runtimeOptions: runtimeOptionsWithDebug
+              })
           : await this.executeWithVertexFallback({
               generationId: generation.id,
               input: {
@@ -559,6 +580,112 @@ export class GenerationService {
     } catch (error) {
       const fallbackReason =
         error instanceof Error ? error.message : 'Unknown Gemini provider error.';
+
+      return this.executeFakeGeneration({
+        generationId: options.generationId,
+        input: options.input,
+        prompt: options.prompt,
+        fallbackReason,
+        vertexAttempted: true,
+        vertexError: error,
+        runtimeOptions: options.runtimeOptions
+      });
+    }
+  }
+
+  private async executeWithOpenAIFallback(options: {
+    generationId: string;
+    input: CreateGenerationInput;
+    prompt: PromptBuildResult;
+    sourceImage: Awaited<ReturnType<typeof imageService.getImage>>;
+    secondaryImage?: SecondaryImageInput;
+    runtimeOptions: GenerationRuntimeOptions;
+  }): Promise<GenerationExecutionResult> {
+    try {
+      const sourceImageBytes = Buffer.from(await storage.readAsset(options.sourceImage.filePath));
+      const providerResponses = await Promise.all(
+        Array.from({ length: options.input.variantsRequested }, () =>
+          callOpenAIImageEdit({
+            sourceImageBuffer: sourceImageBytes,
+            sourceImageMimeType: options.sourceImage.mimeType,
+            secondaryImageBuffer: options.secondaryImage?.buffer,
+            secondaryImageMimeType: options.secondaryImage?.mimeType,
+            promptText: options.prompt.promptText
+          })
+        )
+      );
+      const images = providerResponses.map((response) => ({
+        bytes: Buffer.from(response.imageBase64, 'base64'),
+        mimeType: response.mimeType
+      }));
+      const outputByteSizes = images.map((image) => image.bytes.byteLength);
+      const predictions: ProviderPredictionDebug[] = providerResponses.map((response, index) => ({
+        index,
+        fieldsPresent: ['b64_json'],
+        selectedImageField: 'b64_json',
+        mimeType: response.mimeType,
+        base64: summarizeBase64(response.imageBase64),
+        decodedByteLength: images[index]?.bytes.byteLength ?? null,
+        sha256: images[index] ? sha256Hex(images[index].bytes) : null,
+        decodeSucceeded: true,
+        decodeError: null
+      }));
+      const providerDebugRun: ProviderDebugRun = {
+        runId: options.runtimeOptions.debugRunId ?? createDebugRunId(),
+        usedFlow: 'vertex',
+        model: OPENAI_IMAGE_MODEL,
+        requestType: 'edit',
+        requestEndpoint: 'images/edits',
+        endpointUrl: OPENAI_API_URL,
+        sourceImageIncluded: true,
+        maskIncluded: false,
+        targetRegionIncluded: false,
+        sampleCount: options.input.variantsRequested,
+        fakeFallbackUsed: false,
+        fallbackReason: null,
+        responseStatus: 200,
+        predictionsCount: images.length,
+        outputMimeTypes: images.map((image) => image.mimeType),
+        outputByteSizes,
+        totalOutputBytes: outputByteSizes.reduce((sum, size) => sum + size, 0),
+        responseMetadata: null,
+        responseRootKeys: ['data'],
+        rawResponsePreview: previewRawResponse(
+          JSON.stringify({
+            data: providerResponses.map((response) => ({
+              b64_json: '<omitted-base64-image>',
+              mimeType: response.mimeType
+            }))
+          })
+        ),
+        predictions,
+        artifacts: [],
+        persistedImages: [],
+        editStrategy: 'OpenAI gpt-image-1 Images Edit mit Quellbild.',
+        modelHint: null,
+        error: null
+      };
+      const providerResult: VertexGenerationResult = {
+        provider: 'vertex',
+        model: OPENAI_IMAGE_MODEL,
+        usage: {
+          fakeGeneration: false
+        },
+        providerDebug: providerDebugRun,
+        images
+      };
+
+      return await this.persistVertexResult({
+        generationId: options.generationId,
+        input: options.input,
+        prompt: options.prompt,
+        providerResult,
+        runtimeOptions: options.runtimeOptions
+      });
+    } catch (error) {
+      console.error('[openai-debug] FEHLER:', error);
+      const fallbackReason =
+        error instanceof Error ? error.message : 'Unknown OpenAI provider error.';
 
       return this.executeFakeGeneration({
         generationId: options.generationId,

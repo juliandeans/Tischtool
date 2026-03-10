@@ -2,7 +2,8 @@ export type ProviderFlowPreference = 'real' | 'fake';
 export type ImageModel =
   | 'imagen-3'
   | 'gemini-3-pro-image'
-  | 'gemini-3.1-flash-image-preview';
+  | 'gemini-3.1-flash-image-preview'
+  | 'gpt-image-1';
 
 export type ProviderSettingsSnapshot = {
   vertexProjectId: string;
