@@ -118,14 +118,14 @@
         label="Modell"
         value={data.providerSettings.imageModel}
         options={[
-          { value: 'gemini-3-pro-image', label: 'Gemini 3 Pro Image' },
+          { value: 'gemini-3-pro-image', label: 'Gemini 3 Pro Image (Vertex)' },
           {
             value: 'gemini-3.1-flash-image-preview',
-            label: 'Gemini 3.1 Flash Image'
+            label: 'Gemini 3.1 Flash Image (Vertex)'
           },
           {
             value: 'gemini-2.5-flash-image-preview',
-            label: 'Gemini 2.5 Flash Image'
+            label: 'Gemini 2.5 Flash Image (Vertex)'
           },
           { value: 'flux-2-pro', label: 'FLUX.2 Pro (BFL)' },
           { value: 'flux-2-pro-preview', label: 'FLUX.2 Pro Preview (BFL)' },

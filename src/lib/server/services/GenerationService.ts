@@ -32,9 +32,12 @@ import {
   GEMINI_25_FLASH_IMAGE_MODEL,
   GEMINI_FLASH_IMAGE_MODEL,
   GEMINI_IMAGE_MODEL,
+  getGeminiAIStudioUrl,
+  type GeminiAuth,
   getGeminiGenerateContentUrl
 } from '$lib/server/vertex/gemini-image';
 import { vertexClient } from '$lib/server/vertex/client';
+import { serverConfig } from '$lib/server/config';
 import {
   callFluxImageEdit,
   FLUX_API_BASE_URL,
@@ -625,8 +628,6 @@ export class GenerationService {
   }): Promise<GenerationExecutionResult> {
     try {
       const sourceImageBytes = await storage.readAsset(options.sourceImage.filePath);
-      const projectId = vertexClient.getConfiguration().projectId;
-      const accessToken = await vertexClient.getAccessToken();
       const geminiModelId = getGeminiModelId(
         options.runtimeOptions.imageModel === 'gemini-3.1-flash-image-preview'
           ? 'gemini-3.1-flash-image-preview'
@@ -634,6 +635,13 @@ export class GenerationService {
             ? 'gemini-2.5-flash-image-preview'
           : 'gemini-3-pro-image'
       );
+      const geminiAuth: GeminiAuth = serverConfig.GEMINI_API_KEY
+        ? { type: 'ai-studio', apiKey: serverConfig.GEMINI_API_KEY }
+        : {
+            type: 'vertex',
+            projectId: vertexClient.getConfiguration().projectId,
+            accessToken: await vertexClient.getAccessToken()
+          };
       const providerResponses = await Promise.all(
         Array.from({ length: options.input.variantsRequested }, () =>
           callGeminiImageEdit(
@@ -644,8 +652,7 @@ export class GenerationService {
               secondaryImageMimeType: options.secondaryImage?.mimeType,
               promptText: options.prompt.promptText
             },
-            projectId,
-            accessToken,
+            geminiAuth,
             geminiModelId
           )
         )
@@ -673,7 +680,10 @@ export class GenerationService {
         model: geminiModelId,
         requestType: 'generate',
         requestEndpoint: 'generateContent',
-        endpointUrl: getGeminiGenerateContentUrl(projectId, geminiModelId),
+        endpointUrl:
+          geminiAuth.type === 'ai-studio'
+            ? getGeminiAIStudioUrl(geminiModelId)
+            : getGeminiGenerateContentUrl(geminiAuth.projectId, geminiModelId),
         sourceImageIncluded: true,
         maskIncluded: false,
         targetRegionIncluded: false,

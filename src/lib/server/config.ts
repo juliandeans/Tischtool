@@ -13,6 +13,7 @@ export const serverConfig = {
   VERTEX_LOCATION: privateEnv.VERTEX_LOCATION || '',
   VERTEX_MODEL: privateEnv.VERTEX_MODEL || '',
   GOOGLE_APPLICATION_CREDENTIALS: privateEnv.GOOGLE_APPLICATION_CREDENTIALS || '',
+  GEMINI_API_KEY: privateEnv.GEMINI_API_KEY || '',
   BFL_API_KEY: privateEnv.BFL_API_KEY || '',
   PUBLIC_APP_NAME: publicEnv.PUBLIC_APP_NAME || 'Moebel Visualisierung'
 } as const;

@@ -26,8 +26,7 @@
     },
     '/room-insert': {
       title: 'Implementieren',
-      subtitle:
-        'Objekt in eine Umgebung setzen: Erst oben das Objekt auswählen oder hochladen. Danach unten eine gewünschte Umgebung auswählen. In das Umgebungsfoto klicken, um eine Position auszuwählen.'
+      subtitle: 'Objekt in eine Umgebung setzen'
     },
     '/costs': {
       title: 'Kosten',

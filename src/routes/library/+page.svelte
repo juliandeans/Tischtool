@@ -137,6 +137,9 @@
         {#if uploadError}
           <p class="upload-form__error">{uploadError}</p>
         {/if}
+        {#if uploadSuccess}
+          <p class="upload-form__success">{uploadSuccess}</p>
+        {/if}
       </form>
     {/if}
   </Card>

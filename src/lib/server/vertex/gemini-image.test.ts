@@ -4,7 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   callGeminiImageEdit,
   GEMINI_25_FLASH_IMAGE_MODEL,
-  GEMINI_FLASH_IMAGE_MODEL
+  GEMINI_FLASH_IMAGE_MODEL,
+  getGeminiAIStudioUrl
 } from '$lib/server/vertex/gemini-image';
 
 describe('callGeminiImageEdit', () => {
@@ -60,8 +61,7 @@ describe('callGeminiImageEdit', () => {
 
     const result = await callGeminiImageEdit(
       input,
-      'project-123',
-      'token-abc',
+      { type: 'vertex', projectId: 'project-123', accessToken: 'token-abc' },
       GEMINI_FLASH_IMAGE_MODEL
     );
 
@@ -116,8 +116,7 @@ describe('callGeminiImageEdit', () => {
           sourceImageMimeType: 'image/jpeg',
           promptText: 'Bearbeite das Bild.'
         },
-        'project-123',
-        'token-abc'
+        { type: 'vertex', projectId: 'project-123', accessToken: 'token-abc' }
       )
     ).rejects.toThrow('Gemini response does not contain an image part.');
   });
@@ -153,8 +152,7 @@ describe('callGeminiImageEdit', () => {
         sourceImageMimeType: 'image/jpeg',
         promptText: 'Bearbeite das Bild.'
       },
-      'project-123',
-      'token-abc',
+      { type: 'vertex', projectId: 'project-123', accessToken: 'token-abc' },
       GEMINI_25_FLASH_IMAGE_MODEL
     );
 
@@ -166,6 +164,52 @@ describe('callGeminiImageEdit', () => {
           Authorization: 'Bearer token-abc',
           'Content-Type': 'application/json'
         })
+      })
+    );
+  });
+
+  it('uses AI Studio with query key and no Authorization header when configured', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'image/png',
+                    data: 'ZmFrZS1pbWFnZQ=='
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      })
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const sourceImageBase64 = await createSourceImageBase64();
+
+    await callGeminiImageEdit(
+      {
+        sourceImageBase64,
+        sourceImageMimeType: 'image/jpeg',
+        promptText: 'Bearbeite das Bild.'
+      },
+      { type: 'ai-studio', apiKey: 'gemini-key-123' },
+      GEMINI_FLASH_IMAGE_MODEL
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${getGeminiAIStudioUrl(GEMINI_FLASH_IMAGE_MODEL)}?key=gemini-key-123`,
+      expect.objectContaining({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
     );
   });

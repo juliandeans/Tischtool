@@ -1,6 +1,6 @@
 import { count, desc, eq } from 'drizzle-orm';
 
-import { getDb, isDatabaseConfigured } from '$lib/server/db';
+import { getDb, isDatabaseConfigured, runDatabaseRead } from '$lib/server/db';
 import { images, projects, users } from '$lib/server/db/schema';
 import { DEV_USER } from '$lib/server/services/dev-user';
 import type {
@@ -12,26 +12,23 @@ import type {
 
 export class ProjectService {
   async listProjects(): Promise<ProjectSummary[]> {
-    if (!isDatabaseConfigured()) {
-      return [];
-    }
+    return runDatabaseRead('ProjectService.listProjects', [], async (db) => {
+      const rows = await db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          description: projects.description,
+          coverImageId: projects.coverImageId,
+          updatedAt: projects.updatedAt
+        })
+        .from(projects)
+        .orderBy(desc(projects.updatedAt));
 
-    const db = getDb();
-    const rows = await db
-      .select({
-        id: projects.id,
-        name: projects.name,
-        description: projects.description,
-        coverImageId: projects.coverImageId,
-        updatedAt: projects.updatedAt
-      })
-      .from(projects)
-      .orderBy(desc(projects.updatedAt));
-
-    return rows.map((row) => ({
-      ...row,
-      updatedAt: row.updatedAt.toISOString()
-    }));
+      return rows.map((row) => ({
+        ...row,
+        updatedAt: row.updatedAt.toISOString()
+      }));
+    });
   }
 
   async getProject(id: string): Promise<ProjectDetail> {
@@ -81,44 +78,41 @@ export class ProjectService {
   }
 
   async listProjectCards(): Promise<ProjectListItem[]> {
-    if (!isDatabaseConfigured()) {
-      return [];
-    }
+    return runDatabaseRead('ProjectService.listProjectCards', [], async (db) => {
+      const [projectRows, countRows] = await Promise.all([
+        db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            description: projects.description,
+            coverImageId: projects.coverImageId,
+            updatedAt: projects.updatedAt
+          })
+          .from(projects)
+          .orderBy(desc(projects.updatedAt)),
+        db
+          .select({
+            projectId: images.projectId,
+            imageCount: count(images.id)
+          })
+          .from(images)
+          .groupBy(images.projectId)
+      ]);
 
-    const db = getDb();
-    const [projectRows, countRows] = await Promise.all([
-      db
-        .select({
-          id: projects.id,
-          name: projects.name,
-          description: projects.description,
-          coverImageId: projects.coverImageId,
-          updatedAt: projects.updatedAt
-        })
-        .from(projects)
-        .orderBy(desc(projects.updatedAt)),
-      db
-        .select({
-          projectId: images.projectId,
-          imageCount: count(images.id)
-        })
-        .from(images)
-        .groupBy(images.projectId)
-    ]);
+      const countMap = new Map(countRows.map((row) => [row.projectId, row.imageCount]));
 
-    const countMap = new Map(countRows.map((row) => [row.projectId, row.imageCount]));
-
-    return projectRows.map((project) => ({
-      id: project.id,
-      name: project.name,
-      description: project.description,
-      coverImageId: project.coverImageId,
-      updatedAt: project.updatedAt.toISOString(),
-      imageCount: Number(countMap.get(project.id) ?? 0),
-      coverThumbnailUrl: project.coverImageId
-        ? `/api/images/${project.coverImageId}/download?variant=thumbnail`
-        : null
-    }));
+      return projectRows.map((project) => ({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        coverImageId: project.coverImageId,
+        updatedAt: project.updatedAt.toISOString(),
+        imageCount: Number(countMap.get(project.id) ?? 0),
+        coverThumbnailUrl: project.coverImageId
+          ? `/api/images/${project.coverImageId}/download?variant=thumbnail`
+          : null
+      }));
+    });
   }
 
   async ensureDefaultUser() {

@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 
-import { getDb, isDatabaseConfigured } from '$lib/server/db';
+import { getDb, isDatabaseConfigured, runDatabaseRead } from '$lib/server/db';
 import { costLogs, generations, projects } from '$lib/server/db/schema';
 import type { CostLogListItem, CostSummary } from '$lib/types/cost';
 
@@ -59,53 +59,54 @@ export const calculateCostSummary = (input: {
 
 export class CostService {
   async getSummary(): Promise<CostSummary> {
-    if (!isDatabaseConfigured()) {
-      return calculateCostSummary({
+    return runDatabaseRead(
+      'CostService.getSummary',
+      calculateCostSummary({
         logs: [],
         mostExpensiveProjects: [],
         totalQuantity: 0
-      });
-    }
+      }),
+      async (db) => {
+        const [logs, quantityRows, projectRows] = await Promise.all([
+          db
+            .select({
+              totalPrice: costLogs.totalPrice,
+              createdAt: costLogs.createdAt
+            })
+            .from(costLogs),
+          db
+            .select({
+              quantity: sql<string>`coalesce(sum(${costLogs.quantity}), 0)`
+            })
+            .from(costLogs),
+          db
+            .select({
+              projectId: projects.id,
+              name: projects.name,
+              total: sql<string>`coalesce(sum(${costLogs.totalPrice}), 0)`
+            })
+            .from(costLogs)
+            .innerJoin(generations, eq(costLogs.generationId, generations.id))
+            .innerJoin(projects, eq(generations.projectId, projects.id))
+            .groupBy(projects.id, projects.name)
+            .orderBy(sql`coalesce(sum(${costLogs.totalPrice}), 0) desc`)
+            .limit(1)
+        ]);
 
-    const db = getDb();
-    const [logs, quantityRows, projectRows] = await Promise.all([
-      db
-        .select({
-          totalPrice: costLogs.totalPrice,
-          createdAt: costLogs.createdAt
-        })
-        .from(costLogs),
-      db
-        .select({
-          quantity: sql<string>`coalesce(sum(${costLogs.quantity}), 0)`
-        })
-        .from(costLogs),
-      db
-        .select({
-          projectId: projects.id,
-          name: projects.name,
-          total: sql<string>`coalesce(sum(${costLogs.totalPrice}), 0)`
-        })
-        .from(costLogs)
-        .innerJoin(generations, eq(costLogs.generationId, generations.id))
-        .innerJoin(projects, eq(generations.projectId, projects.id))
-        .groupBy(projects.id, projects.name)
-        .orderBy(sql`coalesce(sum(${costLogs.totalPrice}), 0) desc`)
-        .limit(1)
-    ]);
-
-    return calculateCostSummary({
-      logs: logs.map((log) => ({
-        totalPrice: toNumber(log.totalPrice),
-        createdAt: log.createdAt.toISOString()
-      })),
-      mostExpensiveProjects: projectRows.map((row) => ({
-        projectId: row.projectId,
-        name: row.name,
-        total: toNumber(row.total)
-      })),
-      totalQuantity: toNumber(quantityRows[0]?.quantity)
-    });
+        return calculateCostSummary({
+          logs: logs.map((log) => ({
+            totalPrice: toNumber(log.totalPrice),
+            createdAt: log.createdAt.toISOString()
+          })),
+          mostExpensiveProjects: projectRows.map((row) => ({
+            projectId: row.projectId,
+            name: row.name,
+            total: toNumber(row.total)
+          })),
+          totalQuantity: toNumber(quantityRows[0]?.quantity)
+        });
+      }
+    );
   }
 
   async getLogs(filters?: {
@@ -113,51 +114,48 @@ export class CostService {
     startDate?: string | null;
     endDate?: string | null;
   }): Promise<CostLogListItem[]> {
-    if (!isDatabaseConfigured()) {
-      return [];
-    }
+    return runDatabaseRead('CostService.getLogs', [], async (db) => {
+      const conditions = [];
+      const startDate = parseDateStart(filters?.startDate);
+      const endDateExclusive = parseDateEndExclusive(filters?.endDate);
 
-    const db = getDb();
-    const conditions = [];
-    const startDate = parseDateStart(filters?.startDate);
-    const endDateExclusive = parseDateEndExclusive(filters?.endDate);
+      if (filters?.projectId) {
+        conditions.push(eq(projects.id, filters.projectId));
+      }
 
-    if (filters?.projectId) {
-      conditions.push(eq(projects.id, filters.projectId));
-    }
+      if (startDate) {
+        conditions.push(gte(costLogs.createdAt, startDate));
+      }
 
-    if (startDate) {
-      conditions.push(gte(costLogs.createdAt, startDate));
-    }
+      if (endDateExclusive) {
+        conditions.push(lt(costLogs.createdAt, endDateExclusive));
+      }
 
-    if (endDateExclusive) {
-      conditions.push(lt(costLogs.createdAt, endDateExclusive));
-    }
+      const query = db
+        .select({
+          id: costLogs.id,
+          projectId: projects.id,
+          projectName: projects.name,
+          model: costLogs.model,
+          totalPrice: costLogs.totalPrice,
+          createdAt: costLogs.createdAt
+        })
+        .from(costLogs)
+        .innerJoin(generations, eq(costLogs.generationId, generations.id))
+        .innerJoin(projects, eq(generations.projectId, projects.id))
+        .orderBy(desc(costLogs.createdAt));
 
-    const query = db
-      .select({
-        id: costLogs.id,
-        projectId: projects.id,
-        projectName: projects.name,
-        model: costLogs.model,
-        totalPrice: costLogs.totalPrice,
-        createdAt: costLogs.createdAt
-      })
-      .from(costLogs)
-      .innerJoin(generations, eq(costLogs.generationId, generations.id))
-      .innerJoin(projects, eq(generations.projectId, projects.id))
-      .orderBy(desc(costLogs.createdAt));
+      const rows = await (conditions.length ? query.where(and(...conditions)) : query);
 
-    const rows = await (conditions.length ? query.where(and(...conditions)) : query);
-
-    return rows.map((row) => ({
-      id: row.id,
-      projectId: row.projectId,
-      projectName: row.projectName,
-      model: row.model,
-      totalPrice: toNumber(row.totalPrice),
-      createdAt: row.createdAt.toISOString()
-    }));
+      return rows.map((row) => ({
+        id: row.id,
+        projectId: row.projectId,
+        projectName: row.projectName,
+        model: row.model,
+        totalPrice: toNumber(row.totalPrice),
+        createdAt: row.createdAt.toISOString()
+      }));
+    });
   }
 }
 

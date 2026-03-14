@@ -3,7 +3,7 @@ import path from 'node:path';
 import { desc, eq } from 'drizzle-orm';
 import sharp from 'sharp';
 
-import { getDb, isDatabaseConfigured } from '$lib/server/db';
+import { getDb, isDatabaseConfigured, runDatabaseRead } from '$lib/server/db';
 import { images, projects } from '$lib/server/db/schema';
 import { projectService } from '$lib/server/services/ProjectService';
 import { storage } from '$lib/server/storage';
@@ -37,23 +37,20 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 
 export class ImageService {
   async listProjectImages(projectId: string) {
-    if (!isDatabaseConfigured()) {
-      return [];
-    }
+    return runDatabaseRead('ImageService.listProjectImages', [], async (db) => {
+      const rows = await db
+        .select({
+          id: images.id,
+          projectId: images.projectId,
+          parentImageId: images.parentImageId,
+          thumbnailPath: images.thumbnailPath
+        })
+        .from(images)
+        .where(eq(images.projectId, projectId))
+        .orderBy(desc(images.createdAt));
 
-    const db = getDb();
-    const rows = await db
-      .select({
-        id: images.id,
-        projectId: images.projectId,
-        parentImageId: images.parentImageId,
-        thumbnailPath: images.thumbnailPath
-      })
-      .from(images)
-      .where(eq(images.projectId, projectId))
-      .orderBy(desc(images.createdAt));
-
-    return rows;
+      return rows;
+    });
   }
 
   async getImage(id: string): Promise<ImageDetail> {
@@ -161,137 +158,28 @@ export class ImageService {
   }
 
   async listLibraryImages(projectId?: string | null): Promise<LibraryImageListItem[]> {
-    if (!isDatabaseConfigured()) {
-      return [];
-    }
+    return runDatabaseRead('ImageService.listLibraryImages', [], async (db) => {
+      const baseQuery = db
+        .select({
+          id: images.id,
+          projectId: images.projectId,
+          projectName: projects.name,
+          type: images.type,
+          filePath: images.filePath,
+          mimeType: images.mimeType,
+          width: images.width,
+          height: images.height,
+          createdAt: images.createdAt,
+          settingsSnapshot: images.settingsSnapshot
+        })
+        .from(images)
+        .innerJoin(projects, eq(images.projectId, projects.id));
 
-    const db = getDb();
-    const baseQuery = db
-      .select({
-        id: images.id,
-        projectId: images.projectId,
-        projectName: projects.name,
-        type: images.type,
-        filePath: images.filePath,
-        mimeType: images.mimeType,
-        width: images.width,
-        height: images.height,
-        createdAt: images.createdAt,
-        settingsSnapshot: images.settingsSnapshot
-      })
-      .from(images)
-      .innerJoin(projects, eq(images.projectId, projects.id));
+      const rows = projectId
+        ? await baseQuery.where(eq(images.projectId, projectId)).orderBy(desc(images.createdAt))
+        : await baseQuery.orderBy(desc(images.createdAt));
 
-    const rows = projectId
-      ? await baseQuery.where(eq(images.projectId, projectId)).orderBy(desc(images.createdAt))
-      : await baseQuery.orderBy(desc(images.createdAt));
-
-    return rows.map((row) => {
-      const settings = (row.settingsSnapshot as Record<string, unknown> | null) ?? null;
-      const originalFileName =
-        typeof settings?.originalFileName === 'string'
-          ? settings.originalFileName
-          : imageTitleFromPath(row.filePath);
-
-      return {
-        id: row.id,
-        projectId: row.projectId,
-        projectName: row.projectName,
-        title: originalFileName,
-        type: row.type as ImageSummary['type'],
-        createdAt: row.createdAt.toISOString(),
-        mimeType: row.mimeType,
-        width: row.width,
-        height: row.height,
-        thumbnailUrl: `/api/images/${row.id}/download?variant=thumbnail`,
-        downloadUrl: `/api/images/${row.id}/download?download=1`,
-        editUrl: `/editor/${row.id}`
-      };
-    });
-  }
-
-  async listChildVariants(parentImageId: string): Promise<LibraryImageListItem[]> {
-    if (!isDatabaseConfigured()) {
-      return [];
-    }
-
-    const db = getDb();
-    const rows = await db
-      .select({
-        id: images.id,
-        projectId: images.projectId,
-        projectName: projects.name,
-        type: images.type,
-        filePath: images.filePath,
-        mimeType: images.mimeType,
-        width: images.width,
-        height: images.height,
-        createdAt: images.createdAt,
-        settingsSnapshot: images.settingsSnapshot
-      })
-      .from(images)
-      .innerJoin(projects, eq(images.projectId, projects.id))
-      .where(eq(images.parentImageId, parentImageId))
-      .orderBy(desc(images.createdAt));
-
-    return rows.map((row) => {
-      const settings = (row.settingsSnapshot as Record<string, unknown> | null) ?? null;
-      const originalFileName =
-        typeof settings?.originalFileName === 'string'
-          ? settings.originalFileName
-          : imageTitleFromPath(row.filePath);
-
-      return {
-        id: row.id,
-        projectId: row.projectId,
-        projectName: row.projectName,
-        title: originalFileName,
-        type: row.type as ImageSummary['type'],
-        createdAt: row.createdAt.toISOString(),
-        mimeType: row.mimeType,
-        width: row.width,
-        height: row.height,
-        thumbnailUrl: `/api/images/${row.id}/download?variant=thumbnail`,
-        downloadUrl: `/api/images/${row.id}/download?download=1`,
-        editUrl: `/editor/${row.id}`
-      };
-    });
-  }
-
-  async listGeneratedImagesByMode(
-    projectId: string,
-    mode: Extract<GenerationMode, 'environment_edit' | 'material_edit' | 'room_placement'>
-  ): Promise<LibraryImageListItem[]> {
-    if (!isDatabaseConfigured()) {
-      return [];
-    }
-
-    const db = getDb();
-    const rows = await db
-      .select({
-        id: images.id,
-        projectId: images.projectId,
-        projectName: projects.name,
-        type: images.type,
-        filePath: images.filePath,
-        mimeType: images.mimeType,
-        width: images.width,
-        height: images.height,
-        createdAt: images.createdAt,
-        settingsSnapshot: images.settingsSnapshot,
-        promptSnapshot: images.promptSnapshot
-      })
-      .from(images)
-      .innerJoin(projects, eq(images.projectId, projects.id))
-      .where(eq(images.projectId, projectId))
-      .orderBy(desc(images.createdAt));
-
-    return rows
-      .filter((row) => {
-        const promptSnapshot = (row.promptSnapshot as Record<string, unknown> | null) ?? null;
-        return row.type === 'generated' && promptSnapshot?.mode === mode;
-      })
-      .map((row) => {
+      return rows.map((row) => {
         const settings = (row.settingsSnapshot as Record<string, unknown> | null) ?? null;
         const originalFileName =
           typeof settings?.originalFileName === 'string'
@@ -313,6 +201,106 @@ export class ImageService {
           editUrl: `/editor/${row.id}`
         };
       });
+    });
+  }
+
+  async listChildVariants(parentImageId: string): Promise<LibraryImageListItem[]> {
+    return runDatabaseRead('ImageService.listChildVariants', [], async (db) => {
+      const rows = await db
+        .select({
+          id: images.id,
+          projectId: images.projectId,
+          projectName: projects.name,
+          type: images.type,
+          filePath: images.filePath,
+          mimeType: images.mimeType,
+          width: images.width,
+          height: images.height,
+          createdAt: images.createdAt,
+          settingsSnapshot: images.settingsSnapshot
+        })
+        .from(images)
+        .innerJoin(projects, eq(images.projectId, projects.id))
+        .where(eq(images.parentImageId, parentImageId))
+        .orderBy(desc(images.createdAt));
+
+      return rows.map((row) => {
+        const settings = (row.settingsSnapshot as Record<string, unknown> | null) ?? null;
+        const originalFileName =
+          typeof settings?.originalFileName === 'string'
+            ? settings.originalFileName
+            : imageTitleFromPath(row.filePath);
+
+        return {
+          id: row.id,
+          projectId: row.projectId,
+          projectName: row.projectName,
+          title: originalFileName,
+          type: row.type as ImageSummary['type'],
+          createdAt: row.createdAt.toISOString(),
+          mimeType: row.mimeType,
+          width: row.width,
+          height: row.height,
+          thumbnailUrl: `/api/images/${row.id}/download?variant=thumbnail`,
+          downloadUrl: `/api/images/${row.id}/download?download=1`,
+          editUrl: `/editor/${row.id}`
+        };
+      });
+    });
+  }
+
+  async listGeneratedImagesByMode(
+    projectId: string,
+    mode: Extract<GenerationMode, 'environment_edit' | 'material_edit' | 'room_placement'>
+  ): Promise<LibraryImageListItem[]> {
+    return runDatabaseRead('ImageService.listGeneratedImagesByMode', [], async (db) => {
+      const rows = await db
+        .select({
+          id: images.id,
+          projectId: images.projectId,
+          projectName: projects.name,
+          type: images.type,
+          filePath: images.filePath,
+          mimeType: images.mimeType,
+          width: images.width,
+          height: images.height,
+          createdAt: images.createdAt,
+          settingsSnapshot: images.settingsSnapshot,
+          promptSnapshot: images.promptSnapshot
+        })
+        .from(images)
+        .innerJoin(projects, eq(images.projectId, projects.id))
+        .where(eq(images.projectId, projectId))
+        .orderBy(desc(images.createdAt));
+
+      return rows
+        .filter((row) => {
+          const promptSnapshot = (row.promptSnapshot as Record<string, unknown> | null) ?? null;
+          return row.type === 'generated' && promptSnapshot?.mode === mode;
+        })
+        .map((row) => {
+          const settings = (row.settingsSnapshot as Record<string, unknown> | null) ?? null;
+          const originalFileName =
+            typeof settings?.originalFileName === 'string'
+              ? settings.originalFileName
+              : imageTitleFromPath(row.filePath);
+
+          return {
+            id: row.id,
+            projectId: row.projectId,
+            projectName: row.projectName,
+            title: originalFileName,
+            type: row.type as ImageSummary['type'],
+            createdAt: row.createdAt.toISOString(),
+            mimeType: row.mimeType,
+            width: row.width,
+            height: row.height,
+            thumbnailUrl: `/api/images/${row.id}/download?variant=thumbnail`,
+            downloadUrl: `/api/images/${row.id}/download?download=1`,
+            editUrl: `/editor/${row.id}`
+          };
+        });
+    });
   }
 
   async getEditorImage(id: string) {

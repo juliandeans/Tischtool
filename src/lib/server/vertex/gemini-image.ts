@@ -14,6 +14,10 @@ export interface GeminiImageEditOutput {
   text?: string;
 }
 
+export type GeminiAuth =
+  | { type: 'vertex'; projectId: string; accessToken: string }
+  | { type: 'ai-studio'; apiKey: string };
+
 export const GEMINI_IMAGE_MODEL = "gemini-3-pro-image-preview";
 export const GEMINI_FLASH_IMAGE_MODEL = "gemini-3.1-flash-image-preview";
 export const GEMINI_25_FLASH_IMAGE_MODEL = "gemini-2.5-flash-image-preview";
@@ -24,6 +28,9 @@ export const getGeminiGenerateContentUrl = (
   location: string = "global"
 ) =>
   `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
+
+export const getGeminiAIStudioUrl = (modelId: string = GEMINI_IMAGE_MODEL) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent`;
 
 export const buildGeminiImageEditPayload = (input: GeminiImageEditInput) => {
   const parts: Array<
@@ -73,8 +80,7 @@ export const buildGeminiImageEditPayload = (input: GeminiImageEditInput) => {
 
 export async function callGeminiImageEdit(
   input: GeminiImageEditInput,
-  projectId: string,
-  accessToken: string,
+  auth: GeminiAuth,
   model: string = GEMINI_IMAGE_MODEL
 ): Promise<GeminiImageEditOutput> {
   const originalSecondaryImageBytes = input.secondaryImageBase64
@@ -120,12 +126,21 @@ export async function callGeminiImageEdit(
     secondaryBytes: secondaryBase64?.length ?? 0,
   });
 
-  const response = await fetch(getGeminiGenerateContentUrl(projectId, model), {
+  const url =
+    auth.type === 'ai-studio'
+      ? `${getGeminiAIStudioUrl(model)}?key=${encodeURIComponent(auth.apiKey)}`
+      : getGeminiGenerateContentUrl(auth.projectId, model);
+  const response = await fetch(url, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
+    headers:
+      auth.type === 'ai-studio'
+        ? {
+            "Content-Type": "application/json"
+          }
+        : {
+            Authorization: `Bearer ${auth.accessToken}`,
+            "Content-Type": "application/json"
+          },
     body: JSON.stringify(payload),
   });
 
